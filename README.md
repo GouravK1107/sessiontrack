@@ -1,4 +1,4 @@
-# FocusFlow · Focus Analytics App
+# SessionTrack· Focus Analytics App
 
 Track your focus sessions, analyze productivity patterns, and compete with others — all in one dashboard.
 
