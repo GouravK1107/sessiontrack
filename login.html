@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log in · SessionTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+  <div class="bg-ambient" aria-hidden="true"></div>
+
+  <!-- ══ LEFT PANEL ══ -->
+  <aside class="auth-left-panel" aria-hidden="true">
+    <div class="deco-ring ring-a"></div>
+    <div class="deco-ring ring-b"></div>
+    <div class="deco-ring ring-c"></div>
+
+    <!-- Top -->
+    <div class="panel-top">
+      <a href="index.html" class="panel-logo">
+        <div class="panel-logo-badge">ST</div>
+        <div class="panel-logo-text">
+          <span class="panel-logo-name">SessionTrack</span>
+          <span class="panel-logo-sub">focus analytics</span>
+        </div>
+      </a>
+      <a href="index.html" class="panel-back-pill">
+        <i class="fas fa-arrow-left"></i> Home
+      </a>
+    </div>
+
+    <!-- Mid -->
+    <div class="panel-mid">
+      <div class="panel-eyebrow">
+        <span class="live-dot"></span>
+        500+ creators · live
+      </div>
+
+      <h1 class="panel-heading">
+        Pick up right<br>
+        where you<br>
+        <span class="dim">left off.</span>
+      </h1>
+
+      <p class="panel-desc">
+        Your streaks, charts, and deep-work history are waiting. Log in and keep the momentum going.
+      </p>
+
+      <!-- Stat cards -->
+      <div class="stat-stack">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-fire" style="color:#fbbf24"></i></div>
+          <div class="stat-info">
+            <div class="stat-val">9-day streak</div>
+            <div class="stat-lbl">Daily focus goal hit</div>
+          </div>
+          <span class="stat-badge">🔥 On a roll</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-chart-bar" style="color:rgba(255,255,255,0.9)"></i></div>
+          <div class="stat-info">
+            <div class="stat-val">28h 40m</div>
+            <div class="stat-lbl">Deep work this week</div>
+          </div>
+          <span class="stat-badge">▲ +4h</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-trophy" style="color:#fbbf24"></i></div>
+          <div class="stat-info">
+            <div class="stat-val">8.2h · Sat</div>
+            <div class="stat-lbl">Personal best session</div>
+          </div>
+          <span class="stat-badge">🏆 Best</span>
+        </div>
+      </div>
+
+      <!-- Mini heatmap -->
+      <div class="heatmap-box">
+        <div class="hm-head">
+          <span class="hm-label">Focus heatmap · 7 weeks</span>
+          <span class="hm-avg">avg 6.2h / day</span>
+        </div>
+        <div class="hm-grid" id="hmGrid"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ RIGHT PANEL ══ -->
+  <main class="auth-right-panel">
+    <div class="form-shell">
+
+      <!-- Mobile topbar -->
+      <div class="mobile-topbar">
+        <a href="index.html" class="mobile-logo">
+          <div class="mobile-logo-badge">ST</div>
+          <span class="mobile-logo-name">SessionTrack</span>
+        </a>
+        <a href="index.html" class="mobile-back">
+          <i class="fas fa-arrow-left"></i> Home
+        </a>
+      </div>
+
+      <div class="auth-card">
+
+        <h1>Welcome back 👋</h1>
+        <p class="subtitle">New here? <a href="signup.html">Create a free account →</a></p>
+
+        <!-- Email field -->
+        <div class="field">
+          <div class="field-label-row">
+            <label for="email">Email address</label>
+          </div>
+          <div class="input-wrap">
+            <i class="fas fa-envelope input-icon"></i>
+            <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+          </div>
+          <div class="field-error" id="emailErr">
+            <i class="fas fa-exclamation-circle"></i> Please enter a valid email.
+          </div>
+        </div>
+
+        <!-- Password field -->
+        <div class="field">
+          <div class="field-label-row">
+            <label for="password">Password</label>
+            <a href="#" class="forgot" onclick="forgotPassword(); return false;">Forgot password?</a>
+          </div>
+          <div class="input-wrap">
+            <i class="fas fa-lock input-icon"></i>
+            <input type="password" id="password" placeholder="Your password" autocomplete="current-password">
+            <button class="pwd-toggle" type="button" id="eyeBtn" aria-label="Show / hide password">
+              <i class="fas fa-eye" id="eyeIcon"></i>
+            </button>
+          </div>
+          <div class="field-error" id="pwdErr">
+            <i class="fas fa-exclamation-circle"></i> Password is required.
+          </div>
+        </div>
+
+        <!-- Remember me -->
+        <div class="remember-row">
+          <input type="checkbox" id="remember">
+          <label for="remember">Keep me logged in</label>
+        </div>
+
+        <!-- Submit -->
+        <button class="btn-submit" id="loginBtn" onclick="handleLogin()">
+          <div class="spinner"></div>
+          <span class="btn-text">Log in to SessionTrack</span>
+          <i class="fas fa-arrow-right btn-arrow"></i>
+        </button>
+
+        <!-- Trust -->
+        <div class="trust-strip">
+          <span class="trust-item"><i class="fas fa-lock"></i> Encrypted</span>
+          <span class="trust-item"><i class="fas fa-shield-alt"></i> No tracking</span>
+          <span class="trust-item"><i class="fas fa-ban"></i> No spam</span>
+        </div>
+
+        <p class="auth-switch">Don't have an account? <a href="signup.html">Sign up free</a></p>
+
+      </div><!-- /.auth-card -->
+    </div><!-- /.form-shell -->
+  </main>
+
+  <div class="toast" id="toast"></div>
+  
+  <!-- Password Reset Modal -->
+  <div id="resetModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Reset Password</h3>
+      <p style="color:#666; margin-bottom:15px">Enter your email address and we'll send you a link to reset your password.</p>
+      <input type="email" id="resetEmail" placeholder="Enter your email" autocomplete="email">
+      <div class="modal-buttons">
+        <button onclick="sendResetEmail()" id="resetBtn">Send Reset Link</button>
+        <button onclick="closeResetModal()">Cancel</button>
+      </div>
+      <p>Check your spam section in email for resent link!</p>
+    </div>
+  </div>
+
+  <script type="module" src="js/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · SessionTrack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+<div class="app">
+  <div class="sbo" id="sbo" onclick="closeSb()"></div>
+<nav class="sb" id="sb">
+<div class="sb-top"><div class="sb-badge">ST</div><div><div class="sb-bn">SessionTrack</div><div class="sb-bt">focus analytics</div></div></div>
+<div class="sb-nav">
+<div class="sb-sec">Main</div>
+<a class="ni on" href="dashboard.html"><i class="fas fa-th-large"></i>Dashboard</a>
+<a class="ni" href="sessions.html"><i class="fas fa-stopwatch"></i>Sessions</a>
+<a class="ni" href="analytics.html"><i class="fas fa-chart-bar"></i>Analytics</a>
+<div class="sb-sec">Community</div>
+<a class="ni" href="leaderboard.html"><i class="fas fa-trophy"></i>Leaderboard</a>
+<div class="sb-sec">Account</div>
+<a class="ni" href="dashboard.html"><i class="fas fa-home"></i>Home</a>
+<button class="ni logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i>Logout</button>
+</div>
+<div class="sb-foot"><a class="sb-user" href="profile.html"><div class="sb-av" id="sbAva">GK</div><div><div class="sb-un" id="sbName">Gourav K</div><div class="sb-ur" id="sbRole">BCA · Backend Dev</div></div><i class="fas fa-external-link-alt" style="font-size:.6rem;color:var(--tm);margin-left:auto"></i></a></div>
+</nav>
+
+  <div class="main">
+    <header class="hdr">
+      <button class="hbtn" onclick="toggleSb()"><i class="fas fa-bars"></i></button>
+      <div class="hg"><h2 id="greetTxt">Welcome back 👋</h2><p id="greetSub">Ready for deep work?</p></div>
+      
+      <div class="ha">
+        <div class="hdate" id="hdrDate"></div>
+        <button class="dbtn" onclick="toggleDark()"><i class="fas fa-moon" id="dIco"></i><span id="dLbl">Dark</span></button>
+        <a href="profile.html" class="ibtn" title="Profile"><i class="fas fa-user"></i></a>
+      </div>
+    </header>
+    <div class="pb">
+      <!-- STAT CARDS -->
+      <div class="sr">
+        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-clock"></i></div><span class="strd tup">&#x1F550;</span></div><div class="sv2" id="sH">0m</div><div class="sl">Total today</div></div>
+        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-play-circle"></i></div><span class="strd tneu">&mdash;</span></div><div class="sv2" id="sS">0</div><div class="sl">Sessions today</div></div>
+        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-brain"></i></div><span class="strd tup">&#x1F9E0;</span></div><div class="sv2" id="sD">0m</div><div class="sl">Deep work today</div></div>
+        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-fire"></i></div><span class="strd tup">&#x1F525;</span></div><div class="sv2" id="sSt">0</div><div class="sl">Day streak</div></div>
+      </div>
+
+      <!-- TIMER + HISTORY -->
+      <div class="tg">
+        <div class="card tc2">
+          <div class="tsr">
+            <div><div class="ct">Work Session</div><div class="cs">Track your focus time</div></div>
+            <div class="stxt"><span class="sdot idle" id="sDot"></span><span id="sTxtEl">Idle</span></div>
+          </div>
+          <div class="tdisp">
+            <div class="tclk" id="tClk">00:00:00</div>
+            <div class="tmeta">
+              <div><div class="tv" id="tSt">--:--</div><div class="tl">Start</div></div>
+              <div><div class="tv" id="tDt">--</div><div class="tl">Date</div></div>
+            </div>
+          </div>
+          <div class="tform">
+            <div class="f2">
+              <div class="ff"><label>Category</label>
+                <select id="catSel">
+                  <option value="Deep Work">&#x1F9E0; Deep Work</option>
+                  <option value="Learning">&#x1F4DA; Learning</option>
+                  <option value="Normal Work">&#x1F4BC; Normal Work</option>
+                  <option value="Low Productivity">&#x1F634; Low Productivity</option>
+                </select>
+              </div>
+              <div class="ff"><label>Project</label><div id="projWrap"><input id="projInp" placeholder="e.g. Todo API"></div></div>
+            </div>
+            <div class="ff"><label>Task description</label><textarea id="taskInp" rows="2" placeholder="What are you working on?"></textarea></div>
+          </div>
+          <div class="tbtns">
+            <button class="bstart" id="btnStart" onclick="startSess()"><i class="fas fa-play"></i>Start Session</button>
+            <button class="bstop" id="btnStop" onclick="stopSess()" disabled><i class="fas fa-stop"></i>Stop Session</button>
+          </div>
+        </div>
+        <div class="card hc">
+          <div class="ch">
+            <div><div class="ct">Session History</div><div class="cs" id="histCnt">0 sessions</div></div>
+            <button class="cbtn" onclick="clearAll()">Clear all</button>
+          </div>
+          <div style="padding:0"><div class="htw tw">
+            <table>
+              <thead><tr><th>Date</th><th>Start</th><th>End</th><th>Duration</th><th>Category</th><th>Task</th><th></th></tr></thead>
+              <tbody id="histBody"><tr><td class="etd" colspan="7"><i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>No sessions yet.</td></tr></tbody>
+            </table>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- DAILY MINIMUM HIT -->
+      <div class="card dmh-card">
+        <div class="dmh-header">
+          <div><div class="dmh-card-title">Daily Minimum Hit</div><div class="dmh-card-sub">Check off all goals &rarr; today gets &#x2605; on the calendar</div></div>
+          <span class="dmh-badge none" id="dmhBadge">&#x23F3; Add your goals</span>
+        </div>
+        <div class="dmh-list" id="dmhList"></div>
+        <div class="dmh-add-row">
+          <input class="dmh-add-inp" id="dmhInp" placeholder="Add a goal&hellip; e.g. 2h deep work, read 20 pages" maxlength="80">
+          <button class="dmh-add-btn" onclick="addGoalItem()"><i class="fas fa-plus"></i></button>
+        </div>
+      </div>
+
+      <!-- STREAK -->
+      <div class="card streak-card">
+        <div class="streak-top">
+          <div class="streak-flame" id="strkFlame">&#x1F525;</div>
+          <div class="streak-nums">
+            <div class="streak-current" id="strkCur">0</div>
+            <div class="streak-lbl" id="strkLbl">day streak</div>
+          </div>
+          <div class="streak-meta">
+            <div><div class="streak-stat-val" id="strkBest">0</div><div class="streak-stat-lbl">longest</div></div>
+            <div><div class="streak-stat-val" id="strkMon">0</div><div class="streak-stat-lbl">this month</div></div>
+            <div><div class="streak-stat-val" id="strkGoalDays">0</div><div class="streak-stat-lbl">goal days &#x2605;</div></div>
+          </div>
+        </div>
+        <div class="streak-strip" id="strkStrip"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="tst" id="toast"></div>
+<script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

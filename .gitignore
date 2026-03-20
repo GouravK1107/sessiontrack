@@ -1,0 +1,66 @@
+# ───────── BASIC ─────────
+.DS_Store
+Thumbs.db
+
+# ───────── LOG FILES ─────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ───────── ENVIRONMENT FILES (VERY IMPORTANT) ─────────
+.env
+.env.*
+!.env.example
+
+# ───────── NODE / PACKAGE MANAGERS ─────────
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ───────── BUILD / DIST ─────────
+dist/
+build/
+out/
+
+# ───────── CACHE FILES ─────────
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+
+# ───────── VSCODE / IDE ─────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ───────── FIREBASE LOCAL FILES ─────────
+.firebase/
+.firebaserc
+
+# Firebase debug logs
+firebase-debug.log
+firebase-debug.*.log
+
+# ───────── TEMP FILES ─────────
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# ───────── OS GENERATED ─────────
+Desktop.ini
+
+# ───────── TEST / COVERAGE ─────────
+coverage/
+
+# ───────── OPTIONAL (IF YOU ADD LATER) ─────────
+# Ignore uploaded media (if needed)
+# uploads/
+# *.mp4
+# *.zip

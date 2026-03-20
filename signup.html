@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign up · SessionTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="css/signup.css">
+</head>
+<body>
+  <div class="bg-ambient" aria-hidden="true"></div>
+
+  <!-- ══ LEFT PANEL — Form ══ -->
+  <main class="auth-left-panel">
+    <div class="form-shell">
+
+      <!-- Mobile topbar -->
+      <div class="mobile-topbar">
+        <a href="index.html" class="mobile-logo">
+          <div class="mobile-logo-badge">ST</div>
+          <span class="mobile-logo-name">SessionTrack</span>
+        </a>
+        <a href="index.html" class="mobile-back">
+          <i class="fas fa-arrow-left"></i> Home
+        </a>
+      </div>
+
+      <div class="auth-card">
+
+        <!-- Step dots -->
+        <div class="step-dots">
+          <div class="step-dot s1" id="dot1"></div>
+          <div class="step-dot s2" id="dot2"></div>
+          <div class="step-dot s3" id="dot3"></div>
+        </div>
+
+        <h1>Create your account 🚀</h1>
+        <p class="subtitle">Already have one? <a href="login.html">Log in instead →</a></p>
+
+        <!-- First + Last name row -->
+        <div class="fields-row">
+          <div class="field">
+            <div class="field-label-row">
+              <label for="firstName">First name</label>
+            </div>
+            <div class="input-wrap">
+              <i class="fas fa-user input-icon"></i>
+              <input type="text" id="firstName" placeholder="Gourav" autocomplete="given-name">
+            </div>
+            <div class="field-error" id="firstNameErr">
+              <i class="fas fa-exclamation-circle"></i> Required.
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label-row">
+              <label for="lastName">Last name</label>
+            </div>
+            <div class="input-wrap">
+              <i class="fas fa-user input-icon"></i>
+              <input type="text" id="lastName" placeholder="R" autocomplete="family-name">
+            </div>
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="field">
+          <div class="field-label-row">
+            <label for="email">Email address</label>
+          </div>
+          <div class="input-wrap">
+            <i class="fas fa-envelope input-icon"></i>
+            <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+          </div>
+          <div class="field-error" id="emailErr">
+            <i class="fas fa-exclamation-circle"></i> Please enter a valid email.
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <div class="field-label-row">
+            <label for="password">Password</label>
+          </div>
+          <div class="input-wrap">
+            <i class="fas fa-lock input-icon"></i>
+            <input type="password" id="password" placeholder="Create a strong password" autocomplete="new-password" oninput="checkStrength(this.value)">
+            <button class="pwd-toggle" type="button" id="eyeBtn" aria-label="Show / hide password">
+              <i class="fas fa-eye" id="eyeIcon"></i>
+            </button>
+          </div>
+          <!-- strength meter -->
+          <div class="pwd-strength">
+            <div class="strength-bar">
+              <div class="strength-seg" id="seg1"></div>
+              <div class="strength-seg" id="seg2"></div>
+              <div class="strength-seg" id="seg3"></div>
+              <div class="strength-seg" id="seg4"></div>
+            </div>
+            <span class="strength-label" id="strengthLbl">Enter a password</span>
+          </div>
+          <div class="field-error" id="pwdErr">
+            <i class="fas fa-exclamation-circle"></i> Min. 8 characters required.
+          </div>
+        </div>
+
+        <!-- Terms -->
+        <div class="terms-row">
+          <input type="checkbox" id="terms">
+          <label for="terms">
+            I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+          </label>
+        </div>
+        <div class="field-error" id="termsErr" style="margin-top:-0.8rem;margin-bottom:0.8rem">
+          <i class="fas fa-exclamation-circle"></i> You must agree to continue.
+        </div>
+
+        <!-- Submit -->
+        <button class="btn-submit" id="signupBtn" onclick="handleSignup()">
+          <div class="spinner"></div>
+          <span class="btn-text">Create free account</span>
+          <i class="fas fa-arrow-right btn-arrow"></i>
+        </button>
+
+        <!-- Trust -->
+        <div class="trust-strip">
+          <span class="trust-item"><i class="fas fa-lock"></i> Encrypted</span>
+          <span class="trust-item"><i class="fas fa-ban"></i> No credit card</span>
+          <span class="trust-item"><i class="fas fa-shield-alt"></i> No spam</span>
+        </div>
+
+        <p class="auth-switch">Already have an account? <a href="login.html">Log in</a></p>
+
+      </div><!-- /.auth-card -->
+    </div><!-- /.form-shell -->
+  </main>
+
+  <!-- ══ RIGHT PANEL — Brand ══ -->
+  <aside class="auth-right-panel" aria-hidden="true">
+    <div class="deco-ring ring-a"></div>
+    <div class="deco-ring ring-b"></div>
+    <div class="deco-ring ring-c"></div>
+
+    <!-- Top -->
+    <div class="panel-top">
+      <a href="index.html" class="panel-logo">
+        <div class="panel-logo-badge">ST</div>
+        <div class="panel-logo-text">
+          <span class="panel-logo-name">SessionTrack</span>
+          <span class="panel-logo-sub">focus analytics</span>
+        </div>
+      </a>
+      <a href="index.html" class="panel-back-pill">
+        <i class="fas fa-arrow-left"></i> Home
+      </a>
+    </div>
+
+    <!-- Mid -->
+    <div class="panel-mid">
+        <br>
+      <div class="panel-eyebrow">
+        <span class="live-dot"></span>
+        Free forever · no card needed
+      </div>
+
+      <h2 class="panel-heading">
+        Build your<br>
+        deepest focus<br>
+        <span class="dim">habits.</span>
+      </h2>
+
+      <p class="panel-desc">
+        Join 500+ creators tracking deep work, streaks, and productivity trends — all in one place.
+      </p>
+
+      <!-- Feature checklist -->
+      <div class="feat-list">
+        <div class="feat-item">
+          <div class="feat-check"><i class="fas fa-check"></i></div>
+          Flow timer with automatic session logging
+        </div>
+        <div class="feat-item">
+          <div class="feat-check"><i class="fas fa-check"></i></div>
+          GitHub-style weekly focus heatmap
+        </div>
+        <div class="feat-item">
+          <div class="feat-check"><i class="fas fa-check"></i></div>
+          Deep Work / Learning / Shallow tagging
+        </div>
+        <div class="feat-item">
+          <div class="feat-check"><i class="fas fa-check"></i></div>
+          Streaks, personal bests & daily insights
+        </div>
+        <div class="feat-item">
+          <div class="feat-check"><i class="fas fa-check"></i></div>
+          Calendar view + analytics dashboard
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stat-stack">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-users" style="color:rgba(255,255,255,0.9)"></i></div>
+          <div class="stat-info">
+            <div class="stat-val">500+ creators</div>
+            <div class="stat-lbl">Building focus habits daily</div>
+          </div>
+          <span class="stat-badge">🌍 Global</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-bolt" style="color:#fbbf24"></i></div>
+          <div class="stat-info">
+            <div class="stat-val">10,000+ sessions</div>
+            <div class="stat-lbl">Tracked &amp; analysed</div>
+          </div>
+          <span class="stat-badge">▲ Growing</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom testimonial -->
+    <div class="panel-bot">
+      <div class="testimonial">
+        <div class="testi-ava">GK</div>
+        <div class="testi-body">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">"Started at 2h/day. Three weeks later I'm hitting 7h of real deep work consistently. This tool changed how I think about focus."</p>
+          <span class="testi-author">Gourav K · BCA student &amp; backend dev, Hospet</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="js/signup.js"></script>
+</body>
+</html>

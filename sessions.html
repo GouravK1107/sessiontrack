@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sessions · SessionTrack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="css/session.css">
+<style>
+  /* Enhanced search bar styling */
+  .search-wrapper {
+    position: relative;
+    width: 280px;
+  }
+  
+  .search-wrapper i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--tm);
+    font-size: 0.85rem;
+    pointer-events: none;
+    transition: color 0.2s;
+  }
+  
+  .search-input {
+    width: 100%;
+    padding: 10px 16px 10px 38px;
+    border: 1.5px solid var(--brd);
+    border-radius: 40px;
+    background: var(--s2);
+    color: var(--th);
+    font-size: 0.85rem;
+    font-family: var(--f);
+    transition: all 0.2s ease;
+    outline: none;
+  }
+  
+  .search-input:focus {
+    border-color: var(--p);
+    background: var(--s);
+    box-shadow: 0 0 0 3px var(--pglow);
+  }
+  
+  .search-input::placeholder {
+    color: var(--tm);
+    font-size: 0.8rem;
+  }
+  
+  .search-input:focus + i,
+  .search-wrapper:focus-within i {
+    color: var(--p);
+  }
+  
+  /* Clear button for search */
+  .search-clear {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--tm);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: none;
+  }
+  
+  .search-clear:hover {
+    color: var(--p);
+    background: var(--s2);
+  }
+  
+  .search-input:not(:placeholder-shown) ~ .search-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .search-wrapper {
+      width: 100%;
+      max-width: 280px;
+    }
+    
+    .sess-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    
+    .sess-filter {
+      flex-wrap: wrap;
+    }
+    
+    .sess-count {
+      text-align: center;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .search-wrapper {
+      max-width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sbo" id="sbo" onclick="closeSb()"></div>
+  
+  <!-- SIDEBAR -->
+  <nav class="sb" id="sb">
+    <div class="sb-top">
+      <div class="sb-badge">ST</div>
+      <div>
+        <div class="sb-bn">SessionTrack</div>
+        <div class="sb-bt">focus analytics</div>
+      </div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-sec">Main</div>
+      <a class="ni" href="dashboard.html"><i class="fas fa-th-large"></i>Dashboard</a>
+      <a class="ni on" href="sessions.html"><i class="fas fa-stopwatch"></i>Sessions</a>
+      <a class="ni" href="analytics.html"><i class="fas fa-chart-bar"></i>Analytics</a>
+      <div class="sb-sec">Community</div>
+      <a class="ni" href="leaderboard.html"><i class="fas fa-trophy"></i>Leaderboard</a>
+      <div class="sb-sec">Account</div>
+      <a class="ni" href="index.html"><i class="fas fa-home"></i>Home</a>
+      <button class="ni logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i>Logout</button>
+    </div>
+    <div class="sb-foot">
+      <a class="sb-user" href="profile.html">
+        <div class="sb-av" id="sbAva">GK</div>
+        <div>
+          <div class="sb-un" id="sbName">Gourav K</div>
+          <div class="sb-ur" id="sbRole">BCA · Backend Dev</div>
+        </div>
+        <i class="fas fa-external-link-alt" style="font-size:.6rem;color:var(--tm);margin-left:auto"></i>
+      </a>
+    </div>
+  </nav>
+  
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <header class="hdr">
+      <button class="hbtn" onclick="toggleSb()"><i class="fas fa-bars"></i></button>
+      <div class="hg">
+        <h2 id="greetTxt">Sessions 📋</h2>
+        <p id="greetSub">Browse, filter and manage all your logged sessions</p>
+      </div>
+      
+      <!-- Improved Search Bar -->
+      <div class="search-wrapper">
+        <i class="fas fa-search"></i>
+        <input 
+          type="text" 
+          id="srchInp" 
+          class="search-input" 
+          placeholder="Search by task, project, category..."
+          oninput="onSearch(this.value)"
+        >
+        <button class="search-clear" onclick="clearSearch()" title="Clear search">
+          <i class="fas fa-times-circle"></i>
+        </button>
+      </div>
+      
+      <div class="ha">
+        <div class="hdate" id="hdrDate"></div>
+        <button class="dbtn" onclick="toggleDark()">
+          <i class="fas fa-moon" id="dIco"></i>
+          <span id="dLbl">Dark</span>
+        </button>
+        <a href="profile.html" class="ibtn" title="Profile">
+          <i class="fas fa-user"></i>
+        </a>
+      </div>
+    </header>
+    
+    <div class="pb">
+      <div class="card" style="overflow:hidden">
+        <div class="ch">
+          <div>
+            <div class="ct">All Sessions</div>
+            <div class="cs" id="sessSub">All your logged sessions</div>
+          </div>
+          <button class="cbtn" onclick="clearAll()">Clear all</button>
+        </div>
+        
+        <div style="padding:.75rem 1.25rem .5rem">
+          <div class="sess-toolbar">
+            <div class="sess-filter" id="filterBtns">
+              <button class="sf-btn on" onclick="setFilter('all',this)">All</button>
+              <button class="sf-btn" onclick="setFilter('Deep Work',this)">🧠 Deep</button>
+              <button class="sf-btn" onclick="setFilter('Learning',this)">📚 Learning</button>
+              <button class="sf-btn" onclick="setFilter('Normal Work',this)">💼 Normal</button>
+              <button class="sf-btn" onclick="setFilter('Low Productivity',this)">😴 Low Prod</button>
+            </div>
+            <span class="sess-count" id="sessCount">0 sessions</span>
+          </div>
+        </div>
+        
+        <div class="sess-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Duration</th>
+                <th>Category</th>
+                <th>Project</th>
+                <th>Task</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="sessBody">
+              <tr>
+                <td class="etd" colspan="8">
+                  <i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>
+                  No sessions yet.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tst" id="toast"></div>
+
+<script type="module" src="js/session.js"></script>
+</body>
+</html>
