@@ -412,3 +412,5 @@ onAuthStateChanged(auth, async (user) => {
   await loadActivity();
   await loadRecentSess();
 });
+
+window.saveProfile = saveProfile;
