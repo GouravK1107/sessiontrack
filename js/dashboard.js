@@ -338,31 +338,68 @@ async function deleteSession(sessionId) {
 }
 
 /* ── CALCULATE STREAK ── */
+/* ── CALCULATE STREAK (Robust version) ── */
 function calcStreak(sessions) {
-  const days = new Set(sessions.map((s) => s.date));
-  let n = 0,
-    d = new Date();
-  d.setHours(0, 0, 0, 0);
-  while (days.has(fmtDate(d))) {
-    n++;
-    d.setDate(d.getDate() - 1);
+  if (!sessions.length) return 0;
+  
+  // Create a map of dates with sessions
+  const sessionMap = new Map();
+  sessions.forEach(s => {
+    sessionMap.set(s.date, true);
+  });
+  
+  // Get today's date
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = fmtDate(today);
+  
+  let streak = 0;
+  let checkDate = new Date(today);
+  
+  // Only count streak if there's a session today
+  if (!sessionMap.has(todayStr)) {
+    return 0;
   }
-  return n;
+  
+  // Count consecutive days
+  while (true) {
+    const dateStr = fmtDate(checkDate);
+    if (sessionMap.has(dateStr)) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
 }
 
 function calcLongestStreak(sessions) {
-  const days = [...new Set(sessions.map((s) => s.date))]
+  if (!sessions.length) return 0;
+  
+  // Get sorted unique dates
+  const dates = [...new Set(sessions.map((s) => s.date))]
     .map((ds) => parseD(ds))
     .filter(Boolean)
     .sort((a, b) => a - b);
-  let best = 0, run = 0, prev = null;
-  for (const d of days) {
-    if (prev && d - prev === 86400000) run++;
-    else run = 1;
-    best = Math.max(best, run);
-    prev = d;
+  
+  if (dates.length === 0) return 0;
+  
+  let longest = 1;
+  let currentStreak = 1;
+  
+  for (let i = 1; i < dates.length; i++) {
+    const diff = (dates[i] - dates[i-1]) / (1000 * 60 * 60 * 24);
+    if (diff === 1) {
+      currentStreak++;
+      longest = Math.max(longest, currentStreak);
+    } else {
+      currentStreak = 1;
+    }
   }
-  return best;
+  
+  return longest;
 }
 
 /* ── DAILY MINIMUM HIT (localStorage) ── */
@@ -575,7 +612,7 @@ function renderRecentSessions() {
   $("histCnt").textContent = `${userSessions.length} session${userSessions.length !== 1 ? "s" : ""}`;
   $("histBody").innerHTML = recent.length
     ? recent.map(mkRow).join("")
-    : `发展<td class="etd" colspan="7"><i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>No sessions yet. Start your first!</td>游行`;
+    : `<td class="etd" colspan="7"><i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>No sessions yet. Start your first!</td>`;
 }
 
 /* ── DELETE SESSION (global) ── */
@@ -619,10 +656,13 @@ function renderStreakCard() {
   const nowM = today.getMonth(), nowY = today.getFullYear();
   const dim = new Date(nowY, nowM + 1, 0).getDate();
   let monthDays = 0;
+  
+  // Count days this month with sessions
   for (let d = 1; d <= dim; d++) {
     const ds = fmtDate(new Date(nowY, nowM, d));
     if (userSessions.some(s => s.date === ds)) monthDays++;
   }
+  
   const daysWithSess = [...new Set(userSessions.map(s => s.date))];
   const goalDays = daysWithSess.filter(ds => isGoalHit(ds)).length;
   
@@ -632,11 +672,20 @@ function renderStreakCard() {
   $("strkMon").textContent = monthDays;
   $("strkGoalDays").textContent = goalDays;
   
+  // Flame animation based on streak
   const flame = $("strkFlame");
-  flame.className = cur === 0 ? "streak-flame zero" : "streak-flame";
-  flame.textContent = cur === 0 ? "💤" : "🔥";
+  if (cur === 0) {
+    flame.className = "streak-flame zero";
+    flame.textContent = "💤";
+  } else if (cur < 3) {
+    flame.className = "streak-flame";
+    flame.textContent = "🔥";
+  } else {
+    flame.className = "streak-flame";
+    flame.textContent = "🔥";
+  }
   
-  // 30-day strip
+  // 30-day strip (keep existing code)
   const map = {};
   userSessions.forEach(s => { map[s.date] = (map[s.date] || 0) + s.duration; });
   const strip = $("strkStrip");

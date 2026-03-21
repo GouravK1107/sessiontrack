@@ -238,7 +238,7 @@ function renderSessions() {
   if (filtered.length) {
     $("sessBody").innerHTML = filtered.map(s => mkRow(s, true)).join("");
   } else {
-    $("sessBody").innerHTML = `发展<td class="etd" colspan="8">
+    $("sessBody").innerHTML = `<td class="etd" colspan="8">
       <i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>
       ${searchQuery || activeFilter !== "all" ? "No matches found" : "No sessions yet — start one from Dashboard!"}
     </td></tr>`;

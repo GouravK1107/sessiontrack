@@ -219,16 +219,41 @@ function calculateUserHours(sessions, period = "all") {
 }
 
 /* ── CALCULATE STREAK ── */
+/* ── CALCULATE STREAK (Robust version) ── */
 function calcStreak(sessions) {
-  const days = new Set(sessions.map((s) => s.date));
-  let n = 0,
-    d = new Date();
-  d.setHours(0, 0, 0, 0);
-  while (days.has(fmtDate(d))) {
-    n++;
-    d.setDate(d.getDate() - 1);
+  if (!sessions.length) return 0;
+  
+  // Create a map of dates with sessions
+  const sessionMap = new Map();
+  sessions.forEach(s => {
+    sessionMap.set(s.date, true);
+  });
+  
+  // Get today's date
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = fmtDate(today);
+  
+  let streak = 0;
+  let checkDate = new Date(today);
+  
+  // Only count streak if there's a session today
+  if (!sessionMap.has(todayStr)) {
+    return 0;
   }
-  return n;
+  
+  // Count consecutive days
+  while (true) {
+    const dateStr = fmtDate(checkDate);
+    if (sessionMap.has(dateStr)) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
 }
 
 /* ── GET MOST RECENT PROJECT ── */

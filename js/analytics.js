@@ -170,31 +170,68 @@ async function loadSessions() {
 }
 
 /* ── CALCULATIONS ── */
+/* ── CALCULATE STREAK (Robust version) ── */
 function calcStreak(sessions) {
-  const days = new Set(sessions.map((s) => s.date));
-  let n = 0,
-    d = new Date();
-  d.setHours(0, 0, 0, 0);
-  while (days.has(fmtDate(d))) {
-    n++;
-    d.setDate(d.getDate() - 1);
+  if (!sessions.length) return 0;
+  
+  // Create a map of dates with sessions
+  const sessionMap = new Map();
+  sessions.forEach(s => {
+    sessionMap.set(s.date, true);
+  });
+  
+  // Get today's date
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = fmtDate(today);
+  
+  let streak = 0;
+  let checkDate = new Date(today);
+  
+  // Only count streak if there's a session today
+  if (!sessionMap.has(todayStr)) {
+    return 0;
   }
-  return n;
+  
+  // Count consecutive days
+  while (true) {
+    const dateStr = fmtDate(checkDate);
+    if (sessionMap.has(dateStr)) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
 }
 
 function calcLongestStreak(sessions) {
-  const days = [...new Set(sessions.map((s) => s.date))]
+  if (!sessions.length) return 0;
+  
+  // Get sorted unique dates
+  const dates = [...new Set(sessions.map((s) => s.date))]
     .map((ds) => parseD(ds))
     .filter(Boolean)
     .sort((a, b) => a - b);
-  let best = 0, run = 0, prev = null;
-  for (const d of days) {
-    if (prev && d - prev === 86400000) run++;
-    else run = 1;
-    best = Math.max(best, run);
-    prev = d;
+  
+  if (dates.length === 0) return 0;
+  
+  let longest = 1;
+  let currentStreak = 1;
+  
+  for (let i = 1; i < dates.length; i++) {
+    const diff = (dates[i] - dates[i-1]) / (1000 * 60 * 60 * 24);
+    if (diff === 1) {
+      currentStreak++;
+      longest = Math.max(longest, currentStreak);
+    } else {
+      currentStreak = 1;
+    }
   }
-  return best;
+  
+  return longest;
 }
 
 function isGoalHit(ds) {
