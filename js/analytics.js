@@ -671,13 +671,7 @@ onAuthStateChanged(auth, async (user) => {
 
 /* ── LOGOUT FUNCTION ── */
 async function logout() {
-  try {
-    // Clear timer if running (for dashboard)
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
-    
+  try {   
     // Clear saved timer state
     localStorage.removeItem("activeTimer");
     
