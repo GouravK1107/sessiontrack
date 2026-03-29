@@ -1224,8 +1224,9 @@ tbody td {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   gap: 1.2rem;
-  align-items: start;
+  align-items: stretch;
 }
+
 /* ── CHART TABS ── */
 .chart-tabs {
   display: flex;
@@ -1252,15 +1253,30 @@ tbody td {
   border-color: var(--p);
   color: var(--p);
 }
-/* ── WEEK BAR CHART ── */
+
+/* ── CHART CARD fills full card height ── */
+.chart-fill {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.chart-fill .ch {
+  flex-shrink: 0;
+}
 .cbody {
   padding: 0 1.2rem 1.2rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
+
+/* ── WEEK BAR CHART ── */
 .barea {
   display: flex;
   align-items: flex-end;
   gap: 6px;
-  height: 160px;
+  flex: 1; /* ← fills all remaining height */
+  min-height: 140px;
   margin-top: 1.6rem;
   border-bottom: 2px solid var(--brd);
   position: relative;
@@ -1336,12 +1352,15 @@ tbody td {
   color: var(--p);
   font-weight: 700;
 }
+
 /* ── MONTH PIE CHART ── */
 .pie-body {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
   padding: 0 1.2rem 1.2rem;
+  justify-content: center; /* ← vertically centre when card is tall */
 }
 .pie-wrap {
   display: flex;
@@ -1459,7 +1478,7 @@ tbody td {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 1px;
-  margin-bottom: 1px;
+  margin-bottom: 3px;
 }
 .caldow span {
   text-align: center;
@@ -1472,11 +1491,13 @@ tbody td {
 .calgrid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
+  gap: 2px;
 }
+
+/* ── BASE CELL ── */
 .calcel {
   aspect-ratio: 1/1;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1487,73 +1508,161 @@ tbody td {
   position: relative;
   background: transparent;
   transition:
-    transform 0.12s,
-    background 0.12s;
-}
-.calcel:hover:not(.ct2):not(.oth) {
-  transform: scale(1.15);
-  background: var(--psoft);
-  color: var(--p);
-  z-index: 2;
+    background 0.18s,
+    color 0.18s,
+    transform 0.15s,
+    box-shadow 0.18s;
+  z-index: 1;
 }
 .calcel.oth {
-  opacity: 0.15;
+  opacity: 0.13;
   pointer-events: none;
 }
+
+/* ── HOVER — subtle lift, no big scale ── */
+.calcel:not(.ct2):not(.oth):not(.sk):hover {
+  background: var(--psoft);
+  color: var(--p);
+  transform: scale(0.9);
+  box-shadow:
+    0 0 0 1.5px rgba(33, 82, 224, 0.15),
+    0 2px 6px rgba(33, 82, 224, 0.1);
+  z-index: 5;
+  border-radius: 6px;
+}
+/* streak hover gets orange glow instead */
+.calcel.sk:not(.ct2):not(.oth):hover {
+  transform: scale(1.9);
+  box-shadow:
+    0 0 0 1.5px rgba(224, 104, 43, 0.22),
+    0 2px 6px rgba(224, 104, 43, 0.15);
+  filter: brightness(1.08);
+  z-index: 5;
+}
+
+/* ── TODAY — strong blue circle ── */
 .calcel.ct2 {
   background: var(--p) !important;
   color: #fff !important;
   font-weight: 700;
-  box-shadow: 0 1px 6px var(--pglow);
   border-radius: 50%;
+  box-shadow:
+    0 2px 10px var(--pglow),
+    0 0 0 3px rgba(33, 82, 224, 0.18);
 }
+.calcel.ct2:hover {
+  transform: scale(1.1);
+  box-shadow:
+    0 4px 16px var(--pglow),
+    0 0 0 4px rgba(33, 82, 224, 0.22);
+}
+
+/* ── FOCUS INTENSITY (blue tones) ── */
 .calcel.i1 {
-  background: rgba(33, 82, 224, 0.12);
+  background: rgba(33, 82, 224, 0.11);
   color: var(--th);
 }
 .calcel.i2 {
-  background: rgba(33, 82, 224, 0.28);
+  background: rgba(33, 82, 224, 0.26);
   color: var(--p);
+  font-weight: 600;
 }
 .calcel.i3 {
-  background: rgba(33, 82, 224, 0.52);
+  background: rgba(33, 82, 224, 0.5);
   color: #fff;
+  font-weight: 600;
 }
 .calcel.i4 {
-  background: rgba(33, 82, 224, 0.8);
+  background: rgba(33, 82, 224, 0.82);
   color: #fff;
+  font-weight: 700;
 }
+
+/* ── STREAK DAYS — warm flame orange gradient ── */
 .calcel.sk {
-  background: linear-gradient(
-    135deg,
-    rgba(224, 104, 43, 0.2),
-    rgba(245, 158, 11, 0.14)
-  ) !important;
-  color: var(--org) !important;
+  background: linear-gradient(135deg, #ff8c42 0%, #f59e0b 100%) !important;
+  color: #fff !important;
+  font-weight: 700;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(224, 104, 43, 0.35);
 }
-.calcel.sk.i3,
-.calcel.sk.i4 {
+/* lighter streak for low-intensity days */
+.calcel.sk.i1,
+.calcel.sk.i2 {
   background: linear-gradient(
     135deg,
     rgba(224, 104, 43, 0.55),
     rgba(245, 158, 11, 0.45)
   ) !important;
   color: #fff !important;
+  box-shadow: 0 1px 5px rgba(224, 104, 43, 0.22);
 }
+/* rich flame for high-intensity streak days */
+.calcel.sk.i3,
+.calcel.sk.i4 {
+  background: linear-gradient(135deg, #e0682b 0%, #f59e0b 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 3px 10px rgba(224, 104, 43, 0.45);
+}
+/* streak chain connector — horizontal bar linking consecutive days */
+.calcel.sk-start::before,
+.calcel.sk-mid::before,
+.calcel.sk-end::before {
+  content: "";
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  background: rgba(224, 104, 43, 0.22);
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 0;
+}
+.calcel.sk-start::before {
+  left: 50%;
+  right: -3px;
+}
+.calcel.sk-mid::before {
+  left: -3px;
+  right: -3px;
+}
+.calcel.sk-end::before {
+  left: -3px;
+  right: 50%;
+}
+
+/* today ON streak — bright amber circle */
 .calcel.ct2.sk {
-  background: linear-gradient(135deg, var(--org), var(--yel)) !important;
-  box-shadow: 0 2px 10px rgba(224, 104, 43, 0.45);
+  background: linear-gradient(135deg, #ff8c42, #f59e0b) !important;
+  color: #fff !important;
+  border-radius: 50%;
+  box-shadow:
+    0 3px 14px rgba(224, 104, 43, 0.55),
+    0 0 0 3px rgba(245, 158, 11, 0.25);
 }
+.calcel.ct2.sk:hover {
+  box-shadow:
+    0 5px 18px rgba(224, 104, 43, 0.6),
+    0 0 0 4px rgba(245, 158, 11, 0.3);
+}
+
+/* ── GOAL HIT STAR ── */
 .cal-star {
   position: absolute;
-  top: -1px;
-  right: 0;
-  font-size: 0.46rem;
-  color: var(--yel);
+  top: -2px;
+  right: 0px;
+  font-size: 0.5rem;
+  color: #fff;
   pointer-events: none;
   z-index: 3;
-  text-shadow: 0 0 4px rgba(245, 158, 11, 0.7);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+  filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.9));
 }
+/* on non-streak/non-today cells, star is yellow */
+.calcel:not(.sk):not(.ct2) .cal-star {
+  color: var(--yel);
+  text-shadow: 0 0 4px rgba(245, 158, 11, 0.6);
+}
+
 .calfoot {
   display: flex;
   justify-content: space-between;
