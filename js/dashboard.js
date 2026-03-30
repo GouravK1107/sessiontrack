@@ -101,13 +101,14 @@ function loadTimerState() {
           
           // Restore form values
           if (state.category && $("catSel")) $("catSel").value = state.category;
-          if (state.project && $("projInp")) {
-            // Handle project restoration
+          if (state.project) {
             const projInp = $("projInp");
-            if (projInp.tagName === "SELECT") {
-              projInp.value = state.project;
-            } else if (projInp.tagName === "INPUT") {
-              projInp.value = state.project;
+            if (projInp) {
+              if (projInp.tagName === "SELECT") {
+                projInp.value = state.project;
+              } else if (projInp.tagName === "INPUT") {
+                projInp.value = state.project;
+              }
             }
           }
           if (state.task && $("taskInp")) $("taskInp").value = state.task;
@@ -145,7 +146,7 @@ function startTimerUI() {
   timerInterval = setInterval(() => {
     elapsedSeconds++;
     $("tClk").textContent = formatTime(elapsedSeconds);
-    saveTimerState(); // Save state every second
+    saveTimerState();
   }, 1000);
 }
 
@@ -187,7 +188,6 @@ function closeSb() {
 }
 
 /* ── LOAD USER PROFILE FROM FIREBASE ── */
-/* ── LOAD USER PROFILE FROM FIREBASE ── */
 async function loadUserProfile() {
   if (!currentUser) return null;
   
@@ -202,7 +202,6 @@ async function loadUserProfile() {
       const color = data.color || "linear-gradient(135deg,#2152e0,#b84a8c)";
       const avatarInitials = initials(name);
       
-      // Update sidebar avatar with color and initials
       const sbAva = $("sbAva");
       if (sbAva) {
         sbAva.textContent = avatarInitials;
@@ -210,14 +209,11 @@ async function loadUserProfile() {
         sbAva.style.backgroundSize = "cover";
       }
       
-      // Update sidebar name and role
       if ($("sbName")) $("sbName").textContent = name;
       if ($("sbRole")) $("sbRole").textContent = role;
       
-      // Update header greeting
       initHdr(name);
       
-      // Also store in localStorage for quick access
       localStorage.setItem("st_profile", JSON.stringify({
         name: name,
         role: role,
@@ -227,7 +223,6 @@ async function loadUserProfile() {
       
       return data;
     } else {
-      // No profile exists yet, use default with email initial
       const defaultName = currentUser.email?.split('@')[0] || "User";
       const defaultInitials = initials(defaultName);
       const defaultColor = "linear-gradient(135deg,#2152e0,#b84a8c)";
@@ -250,7 +245,6 @@ async function loadUserProfile() {
   }
 }
 
-/* ── INITIALS FUNCTION (ensure it's there) ── */
 function initials(name) {
   if (!name) return "?";
   const parts = name.trim().split(/\s+/);
@@ -338,17 +332,14 @@ async function deleteSession(sessionId) {
 }
 
 /* ── CALCULATE STREAK ── */
-/* ── CALCULATE STREAK (Robust version) ── */
 function calcStreak(sessions) {
   if (!sessions.length) return 0;
   
-  // Create a map of dates with sessions
   const sessionMap = new Map();
   sessions.forEach(s => {
     sessionMap.set(s.date, true);
   });
   
-  // Get today's date
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = fmtDate(today);
@@ -356,12 +347,10 @@ function calcStreak(sessions) {
   let streak = 0;
   let checkDate = new Date(today);
   
-  // Only count streak if there's a session today
   if (!sessionMap.has(todayStr)) {
     return 0;
   }
   
-  // Count consecutive days
   while (true) {
     const dateStr = fmtDate(checkDate);
     if (sessionMap.has(dateStr)) {
@@ -378,7 +367,6 @@ function calcStreak(sessions) {
 function calcLongestStreak(sessions) {
   if (!sessions.length) return 0;
   
-  // Get sorted unique dates
   const dates = [...new Set(sessions.map((s) => s.date))]
     .map((ds) => parseD(ds))
     .filter(Boolean)
@@ -470,9 +458,12 @@ function getProjVal() {
   return document.querySelector("#projInp")?.value.trim() || "—";
 }
 
-/* ── TIMER ── */
+/* ── TIMER CONTROL FUNCTIONS ── */
 function startSess() {
-  if (timerInterval || isTimerRunning) return;
+  if (timerInterval || isTimerRunning) {
+    toast("Timer already running!", "info");
+    return;
+  }
   
   sessionStartTime = new Date();
   elapsedSeconds = 0;
@@ -482,27 +473,39 @@ function startSess() {
   saveTimerState();
   
   toast("Session started! Stay focused 🚀", "info");
+  console.log("Timer started at:", fmt12(sessionStartTime));
 }
 
 async function stopSess() {
-  if (!timerInterval && !isTimerRunning) return;
+  if (!timerInterval && !isTimerRunning) {
+    toast("No active session to stop", "warn");
+    return;
+  }
   
-  clearInterval(timerInterval);
-  timerInterval = null;
-  
+  // IMPORTANT: Capture the duration BEFORE clearing anything
+  const finalDuration = elapsedSeconds;
+  const startTime = sessionStartTime;
   const endTime = new Date();
+  
+  console.log(`⏱️ Session duration captured: ${finalDuration} seconds (${finalDuration / 60} minutes, ${finalDuration / 3600} hours)`);
+  
+  // Clear the interval
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  
   const category = $("catSel").value;
   let project = getProjVal();
   const task = $("taskInp").value.trim() || "No description";
   
-  // 🔥 NEW: Check if project is "other" and user typed a goal name
+  // Handle "other" project
   if (project === "other") {
     const otherInput = document.querySelector("#projOther");
     if (otherInput && otherInput.value.trim()) {
       const typedValue = otherInput.value.trim();
       const goals = getTodayGoals();
       
-      // Check if typed value matches any incomplete goal
       for (let i = 0; i < goals.length; i++) {
         if (goals[i].text === typedValue && !goals[i].done) {
           goals[i].done = true;
@@ -513,26 +516,27 @@ async function stopSess() {
           break;
         }
       }
-      project = typedValue; // Use typed value as project name
+      project = typedValue;
     } else {
       project = "—";
     }
   }
   
   const sessionData = {
-    date: fmtDate(sessionStartTime),
-    start: fmt12(sessionStartTime),
+    date: fmtDate(startTime),
+    start: fmt12(startTime),
     end: fmt12(endTime),
-    duration: elapsedSeconds,
+    duration: finalDuration,
     category: category,
     project: project,
     task: task,
-    ts: sessionStartTime.getTime()
+    ts: startTime.getTime()
   };
   
+  // Save to Firebase
   await saveSession(sessionData);
   
-  // 🔥 Auto-mark goal if project matches a goal (for dropdown selection)
+  // Auto-mark goal if project matches a goal
   if (project && project !== "—") {
     const goals = getTodayGoals();
     let goalFound = false;
@@ -558,7 +562,7 @@ async function stopSess() {
     }
   }
   
-  // Reset timer UI
+  // Reset UI
   $("tClk").textContent = "00:00:00";
   $("tClk").classList.remove("run");
   $("sDot").className = "sdot idle";
@@ -574,16 +578,18 @@ async function stopSess() {
   const pw = $("projWrap");
   if (pw) pw.querySelectorAll("input,select").forEach((el) => (el.disabled = false));
   
+  // Reset timer variables
   elapsedSeconds = 0;
   sessionStartTime = null;
   isTimerRunning = false;
-  updateProjField();
   
+  updateProjField();
   localStorage.removeItem("activeTimer");
   
   await refreshDashboard();
   
-  toast(`Session saved! ${fmtHM(sessionData.duration)} logged ✓`, "ok");
+  toast(`Session saved! ${fmtHM(finalDuration)} logged ✓`, "ok");
+  console.log(`✅ Session saved with duration: ${finalDuration} seconds`);
 }
 
 /* ── CATEGORY CLASSES ── */
@@ -595,15 +601,15 @@ const CC = {
 };
 
 function mkRow(s) {
-  return `<tr>
-    <td style="color:var(--tm);font-size:.74rem">${s.date}</td>
-    <td style="font-family:var(--m);font-size:.72rem">${s.start}</td>
-    <td style="font-family:var(--m);font-size:.72rem">${s.end}</td>
-    <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}</td>
-    <td><span class="cp ${CC[s.category] || "cp-n"}">${s.category}</span></td>
-    <td style="font-size:.74rem;max-width:160px;white-space:normal">${s.task}</td>
-    <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button></td>
-  </tr>`;
+  return `发展
+    <td style="color:var(--tm);font-size:.74rem">${s.date}发展
+    <td style="font-family:var(--m);font-size:.72rem">${s.start}发展
+    <td style="font-family:var(--m);font-size:.72rem">${s.end}发展
+    <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}发展
+    <td><span class="cp ${CC[s.category] || "cp-n"}">${s.category}</span>发展
+    <td style="font-size:.74rem;max-width:160px;white-space:normal">${s.task}发展
+    <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button>发展
+  游行`;
 }
 
 /* ── RENDER RECENT SESSIONS (last 6) ── */
@@ -612,7 +618,7 @@ function renderRecentSessions() {
   $("histCnt").textContent = `${userSessions.length} session${userSessions.length !== 1 ? "s" : ""}`;
   $("histBody").innerHTML = recent.length
     ? recent.map(mkRow).join("")
-    : `<td class="etd" colspan="7"><i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>No sessions yet. Start your first!</td>`;
+    : `发展<td class="etd" colspan="7"><i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>No sessions yet. Start your first!发展`;
 }
 
 /* ── DELETE SESSION (global) ── */
@@ -657,7 +663,6 @@ function renderStreakCard() {
   const dim = new Date(nowY, nowM + 1, 0).getDate();
   let monthDays = 0;
   
-  // Count days this month with sessions
   for (let d = 1; d <= dim; d++) {
     const ds = fmtDate(new Date(nowY, nowM, d));
     if (userSessions.some(s => s.date === ds)) monthDays++;
@@ -672,7 +677,6 @@ function renderStreakCard() {
   $("strkMon").textContent = monthDays;
   $("strkGoalDays").textContent = goalDays;
   
-  // Flame animation based on streak
   const flame = $("strkFlame");
   if (cur === 0) {
     flame.className = "streak-flame zero";
@@ -685,7 +689,6 @@ function renderStreakCard() {
     flame.textContent = "🔥";
   }
   
-  // 30-day strip (keep existing code)
   const map = {};
   userSessions.forEach(s => { map[s.date] = (map[s.date] || 0) + s.duration; });
   const strip = $("strkStrip");
@@ -754,8 +757,6 @@ function toggleGoal(idx) {
   saveTodayGoals(items);
   renderGoals();
   renderStreakCard();
-  
-  // Update project field if the goal is being marked (optional)
   updateProjField();
   
   if (items.length > 0 && items.every(i => i.done)) {
@@ -783,6 +784,24 @@ async function refreshDashboard() {
   renderStreakCard();
 }
 
+/* ── LOGOUT FUNCTION ── */
+async function logout() {
+  try {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    
+    localStorage.removeItem("activeTimer");
+    await auth.signOut();
+    localStorage.removeItem("st_profile");
+    window.location.href = "login.html";
+  } catch (error) {
+    console.error("Error during logout:", error);
+    toast("Failed to logout. Please try again.", "error");
+  }
+}
+
 /* ── AUTH LISTENER ── */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -795,10 +814,8 @@ onAuthStateChanged(auth, async (user) => {
   await refreshDashboard();
   updateProjField();
   
-  // Check for existing timer on page load
   const timerRestored = loadTimerState();
   if (!timerRestored) {
-    // If no active timer, ensure UI is in idle state
     $("tClk").textContent = "00:00:00";
     $("tSt").textContent = "--:--";
     $("tDt").textContent = "--";
@@ -806,32 +823,6 @@ onAuthStateChanged(auth, async (user) => {
   
   setInterval(initHdr, 60000);
 });
-
-/* ── LOGOUT FUNCTION ── */
-async function logout() {
-  try {
-    // Clear timer if running (for dashboard)
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
-    
-    // Clear saved timer state
-    localStorage.removeItem("activeTimer");
-    
-    // Sign out from Firebase
-    await auth.signOut();
-    
-    // Clear any other user data from localStorage
-    localStorage.removeItem("st_profile");
-    
-    // Redirect to login page
-    window.location.href = "login.html";
-  } catch (error) {
-    console.error("Error during logout:", error);
-    toast("Failed to logout. Please try again.", "error");
-  }
-}
 
 /* ── EXPOSE GLOBAL FUNCTIONS ── */
 window.startSess = startSess;
