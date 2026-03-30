@@ -78,12 +78,12 @@ function escapeHtml(str) {
 }
 
 /* ── TIMER PERSISTENCE FUNCTIONS ── */
+/* ── TIMER PERSISTENCE FUNCTIONS ── */
 function saveTimerState() {
   if (isTimerRunning && sessionStartTime) {
     const timerState = {
       isRunning: true,
       startTime: sessionStartTime.getTime(),
-      elapsedSeconds: elapsedSeconds,
       category: $("catSel")?.value,
       project: getProjVal(),
       task: $("taskInp")?.value
@@ -100,31 +100,18 @@ function loadTimerState() {
     try {
       const state = JSON.parse(savedTimer);
       if (state.isRunning && state.startTime) {
-        const startTimeMs = state.startTime;
-        const now = Date.now();
-        const elapsed = Math.floor((now - startTimeMs) / 1000);
-        
-        if (elapsed >= 0) {
-          sessionStartTime = new Date(startTimeMs);
-          elapsedSeconds = elapsed;
-          isTimerRunning = true;
-          
-          if (state.category && $("catSel")) $("catSel").value = state.category;
-          if (state.project) {
-            const projInp = $("projInp");
-            if (projInp) {
-              if (projInp.tagName === "SELECT") {
-                projInp.value = state.project;
-              } else if (projInp.tagName === "INPUT") {
-                projInp.value = state.project;
-              }
-            }
-          }
-          if (state.task && $("taskInp")) $("taskInp").value = state.task;
-          
-          startTimerUI();
-          return true;
+        sessionStartTime = new Date(state.startTime);
+        isTimerRunning = true;
+
+        if (state.category && $("catSel")) $("catSel").value = state.category;
+        if (state.project) {
+          const projInp = $("projInp");
+          if (projInp) projInp.value = state.project;
         }
+        if (state.task && $("taskInp")) $("taskInp").value = state.task;
+
+        startTimerUI();
+        return true;
       }
     } catch (e) {
       console.error("Error loading timer state:", e);
@@ -133,9 +120,10 @@ function loadTimerState() {
   return false;
 }
 
+
 function startTimerUI() {
   if (timerInterval) return;
-  
+
   $("tSt").textContent = fmt12(sessionStartTime);
   $("tDt").textContent = fmtDate(sessionStartTime);
   $("tClk").classList.add("run");
@@ -145,17 +133,27 @@ function startTimerUI() {
   $("btnStop").disabled = false;
   $("catSel").disabled = true;
   $("taskInp").disabled = true;
-  
+
   const pw = $("projWrap");
   if (pw) pw.querySelectorAll("input,select").forEach((el) => (el.disabled = true));
-  
-  $("tClk").textContent = formatTime(elapsedSeconds);
-  
+
+  // INITIAL CALCULATION
+  updateTimerDisplay();
+
+  // 🔥 FIXED INTERVAL (REAL TIME BASED)
   timerInterval = setInterval(() => {
-    elapsedSeconds++;
-    $("tClk").textContent = formatTime(elapsedSeconds);
+    updateTimerDisplay();
     saveTimerState();
   }, 1000);
+}
+
+function updateTimerDisplay() {
+  if (!sessionStartTime) return;
+
+  const now = Date.now();
+  elapsedSeconds = Math.floor((now - sessionStartTime.getTime()) / 1000);
+
+  $("tClk").textContent = formatTime(elapsedSeconds);
 }
 
 /* ── DARK MODE ── */
@@ -488,26 +486,30 @@ async function stopSess() {
     toast("No active session to stop", "warn");
     return;
   }
-  
-  const finalDuration = elapsedSeconds;
-  const startTime = sessionStartTime;
+
   const endTime = new Date();
-  
+  const startTime = sessionStartTime;
+
+  // 🔥 CRITICAL FIX: compute real duration
+  const finalDuration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+
+  // stop interval
   if (timerInterval) {
     clearInterval(timerInterval);
     timerInterval = null;
   }
-  
+
   const category = $("catSel").value;
   let project = getProjVal();
   const task = $("taskInp").value.trim() || "No description";
-  
+
+  // ── HANDLE "OTHER" PROJECT ──
   if (project === "other") {
     const otherInput = document.querySelector("#projOther");
     if (otherInput && otherInput.value.trim()) {
       const typedValue = otherInput.value.trim();
       const goals = getTodayGoals();
-      
+
       for (let i = 0; i < goals.length; i++) {
         if (goals[i].text === typedValue && !goals[i].done) {
           goals[i].done = true;
@@ -523,7 +525,8 @@ async function stopSess() {
       project = "—";
     }
   }
-  
+
+  // ── SAVE SESSION ──
   const sessionData = {
     date: fmtDate(startTime),
     start: fmt12(startTime),
@@ -534,13 +537,14 @@ async function stopSess() {
     task: task,
     ts: startTime.getTime()
   };
-  
+
   await saveSession(sessionData);
-  
+
+  // ── MARK GOALS ──
   if (project && project !== "—") {
     const goals = getTodayGoals();
     let goalFound = false;
-    
+
     for (let i = 0; i < goals.length; i++) {
       if (goals[i].text === project && !goals[i].done) {
         goals[i].done = true;
@@ -548,20 +552,21 @@ async function stopSess() {
         break;
       }
     }
-    
+
     if (goalFound) {
       saveTodayGoals(goals);
       renderGoals();
       renderStreakCard();
       toast(`🎯 Goal completed: "${project}"!`, "ok");
-      
+
       const allDone = goals.length > 0 && goals.every(g => g.done);
       if (allDone) {
         toast("🌟 All daily goals hit! Amazing work today!", "ok");
       }
     }
   }
-  
+
+  // ── RESET UI ──
   $("tClk").textContent = "00:00:00";
   $("tClk").classList.remove("run");
   $("sDot").className = "sdot idle";
@@ -573,19 +578,20 @@ async function stopSess() {
   $("catSel").disabled = false;
   $("taskInp").disabled = false;
   $("taskInp").value = "";
-  
+
   const pw = $("projWrap");
-  if (pw) pw.querySelectorAll("input,select").forEach((el) => (el.disabled = false));
-  
+  if (pw) pw.querySelectorAll((el) => (el.disabled = false));
+
+  // reset state
   elapsedSeconds = 0;
   sessionStartTime = null;
   isTimerRunning = false;
-  
+
   updateProjField();
   localStorage.removeItem("activeTimer");
-  
+
   await refreshDashboard();
-  
+
   toast(`Session saved! ${fmtHM(finalDuration)} logged ✓`, "ok");
 }
 
@@ -848,3 +854,4 @@ window.addGoalItem = addGoalItem;
 window.toggleGoal = toggleGoal;
 window.delGoal = delGoal;
 window.logout = logout;
+window.updateTimerDisplay = updateTimerDisplay;
