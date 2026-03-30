@@ -78,7 +78,6 @@ function escapeHtml(str) {
 }
 
 /* ── TIMER PERSISTENCE FUNCTIONS ── */
-/* ── TIMER PERSISTENCE FUNCTIONS ── */
 function saveTimerState() {
   if (isTimerRunning && sessionStartTime) {
     const timerState = {
@@ -120,7 +119,6 @@ function loadTimerState() {
   return false;
 }
 
-
 function startTimerUI() {
   if (timerInterval) return;
 
@@ -137,10 +135,8 @@ function startTimerUI() {
   const pw = $("projWrap");
   if (pw) pw.querySelectorAll("input,select").forEach((el) => (el.disabled = true));
 
-  // INITIAL CALCULATION
   updateTimerDisplay();
 
-  // 🔥 FIXED INTERVAL (REAL TIME BASED)
   timerInterval = setInterval(() => {
     updateTimerDisplay();
     saveTimerState();
@@ -490,10 +486,10 @@ async function stopSess() {
   const endTime = new Date();
   const startTime = sessionStartTime;
 
-  // 🔥 CRITICAL FIX: compute real duration
+  // Calculate real duration
   const finalDuration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
 
-  // stop interval
+  // Stop interval
   if (timerInterval) {
     clearInterval(timerInterval);
     timerInterval = null;
@@ -503,7 +499,7 @@ async function stopSess() {
   let project = getProjVal();
   const task = $("taskInp").value.trim() || "No description";
 
-  // ── HANDLE "OTHER" PROJECT ──
+  // Handle "OTHER" project
   if (project === "other") {
     const otherInput = document.querySelector("#projOther");
     if (otherInput && otherInput.value.trim()) {
@@ -526,7 +522,7 @@ async function stopSess() {
     }
   }
 
-  // ── SAVE SESSION ──
+  // Save session
   const sessionData = {
     date: fmtDate(startTime),
     start: fmt12(startTime),
@@ -540,7 +536,7 @@ async function stopSess() {
 
   await saveSession(sessionData);
 
-  // ── MARK GOALS ──
+  // Mark goals
   if (project && project !== "—") {
     const goals = getTodayGoals();
     let goalFound = false;
@@ -566,7 +562,7 @@ async function stopSess() {
     }
   }
 
-  // ── RESET UI ──
+  // Reset UI
   $("tClk").textContent = "00:00:00";
   $("tClk").classList.remove("run");
   $("sDot").className = "sdot idle";
@@ -580,14 +576,16 @@ async function stopSess() {
   $("taskInp").value = "";
 
   const pw = $("projWrap");
-  if (pw) pw.querySelectorAll((el) => (el.disabled = false));
+  if (pw) pw.querySelectorAll("input,select").forEach((el) => (el.disabled = false));
 
-  // reset state
+  // Reset state
   elapsedSeconds = 0;
   sessionStartTime = null;
   isTimerRunning = false;
 
   updateProjField();
+  
+  // 🔥 CRITICAL: Clear saved timer state from localStorage
   localStorage.removeItem("activeTimer");
 
   await refreshDashboard();
@@ -606,14 +604,14 @@ const CC = {
 function mkRow(s) {
   return `
     <tr>
-      <td style="color:var(--tm);font-size:.74rem">${escapeHtml(s.date)}</td>
-      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}</td>
-      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}</td>
-      <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}</td>
-      <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span></td>
-      <td style="font-size:.74rem;max-width:160px;white-space:normal">${escapeHtml(s.task)}</td>
-      <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button></td>
-    </tr>
+      <td style="color:var(--tm);font-size:.74rem">${escapeHtml(s.date)}发展
+      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}发展
+      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}发展
+      <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}发展
+      <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span>发展
+      <td style="font-size:.74rem;max-width:160px;white-space:normal">${escapeHtml(s.task)}发展
+      <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button>发展
+     </>
   `;
 }
 
@@ -636,8 +634,8 @@ function renderRecentSessions() {
           <td class="etd" colspan="7">
             <i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>
             No sessions yet. Start your first!
-          </td>
-        </tr>
+           </td>
+         </>
       `;
     }
   }
