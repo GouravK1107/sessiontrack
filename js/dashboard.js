@@ -67,6 +67,16 @@ function parseD(str) {
   }
 }
 
+function escapeHtml(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /* ── TIMER PERSISTENCE FUNCTIONS ── */
 function saveTimerState() {
   if (isTimerRunning && sessionStartTime) {
@@ -99,7 +109,6 @@ function loadTimerState() {
           elapsedSeconds = elapsed;
           isTimerRunning = true;
           
-          // Restore form values
           if (state.category && $("catSel")) $("catSel").value = state.category;
           if (state.project) {
             const projInp = $("projInp");
@@ -113,7 +122,6 @@ function loadTimerState() {
           }
           if (state.task && $("taskInp")) $("taskInp").value = state.task;
           
-          // Start the timer UI
           startTimerUI();
           return true;
         }
@@ -473,7 +481,6 @@ function startSess() {
   saveTimerState();
   
   toast("Session started! Stay focused 🚀", "info");
-  console.log("Timer started at:", fmt12(sessionStartTime));
 }
 
 async function stopSess() {
@@ -482,14 +489,10 @@ async function stopSess() {
     return;
   }
   
-  // IMPORTANT: Capture the duration BEFORE clearing anything
   const finalDuration = elapsedSeconds;
   const startTime = sessionStartTime;
   const endTime = new Date();
   
-  console.log(`⏱️ Session duration captured: ${finalDuration} seconds (${finalDuration / 60} minutes, ${finalDuration / 3600} hours)`);
-  
-  // Clear the interval
   if (timerInterval) {
     clearInterval(timerInterval);
     timerInterval = null;
@@ -499,7 +502,6 @@ async function stopSess() {
   let project = getProjVal();
   const task = $("taskInp").value.trim() || "No description";
   
-  // Handle "other" project
   if (project === "other") {
     const otherInput = document.querySelector("#projOther");
     if (otherInput && otherInput.value.trim()) {
@@ -533,10 +535,8 @@ async function stopSess() {
     ts: startTime.getTime()
   };
   
-  // Save to Firebase
   await saveSession(sessionData);
   
-  // Auto-mark goal if project matches a goal
   if (project && project !== "—") {
     const goals = getTodayGoals();
     let goalFound = false;
@@ -562,7 +562,6 @@ async function stopSess() {
     }
   }
   
-  // Reset UI
   $("tClk").textContent = "00:00:00";
   $("tClk").classList.remove("run");
   $("sDot").className = "sdot idle";
@@ -578,7 +577,6 @@ async function stopSess() {
   const pw = $("projWrap");
   if (pw) pw.querySelectorAll("input,select").forEach((el) => (el.disabled = false));
   
-  // Reset timer variables
   elapsedSeconds = 0;
   sessionStartTime = null;
   isTimerRunning = false;
@@ -589,7 +587,6 @@ async function stopSess() {
   await refreshDashboard();
   
   toast(`Session saved! ${fmtHM(finalDuration)} logged ✓`, "ok");
-  console.log(`✅ Session saved with duration: ${finalDuration} seconds`);
 }
 
 /* ── CATEGORY CLASSES ── */
@@ -601,24 +598,43 @@ const CC = {
 };
 
 function mkRow(s) {
-  return `发展
-    <td style="color:var(--tm);font-size:.74rem">${s.date}发展
-    <td style="font-family:var(--m);font-size:.72rem">${s.start}发展
-    <td style="font-family:var(--m);font-size:.72rem">${s.end}发展
-    <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}发展
-    <td><span class="cp ${CC[s.category] || "cp-n"}">${s.category}</span>发展
-    <td style="font-size:.74rem;max-width:160px;white-space:normal">${s.task}发展
-    <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button>发展
-  游行`;
+  return `
+    <tr>
+      <td style="color:var(--tm);font-size:.74rem">${escapeHtml(s.date)}</td>
+      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}</td>
+      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}</td>
+      <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}</td>
+      <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span></td>
+      <td style="font-size:.74rem;max-width:160px;white-space:normal">${escapeHtml(s.task)}</td>
+      <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button></td>
+    </tr>
+  `;
 }
 
 /* ── RENDER RECENT SESSIONS (last 6) ── */
 function renderRecentSessions() {
   const recent = userSessions.slice(0, 6);
-  $("histCnt").textContent = `${userSessions.length} session${userSessions.length !== 1 ? "s" : ""}`;
-  $("histBody").innerHTML = recent.length
-    ? recent.map(mkRow).join("")
-    : `发展<td class="etd" colspan="7"><i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>No sessions yet. Start your first!发展`;
+  const histCnt = $("histCnt");
+  const histBody = $("histBody");
+  
+  if (histCnt) {
+    histCnt.textContent = `${userSessions.length} session${userSessions.length !== 1 ? "s" : ""}`;
+  }
+  
+  if (histBody) {
+    if (recent.length) {
+      histBody.innerHTML = recent.map(s => mkRow(s)).join("");
+    } else {
+      histBody.innerHTML = `
+        <tr>
+          <td class="etd" colspan="7">
+            <i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>
+            No sessions yet. Start your first!
+          </td>
+        </tr>
+      `;
+    }
+  }
 }
 
 /* ── DELETE SESSION (global) ── */
@@ -681,9 +697,6 @@ function renderStreakCard() {
   if (cur === 0) {
     flame.className = "streak-flame zero";
     flame.textContent = "💤";
-  } else if (cur < 3) {
-    flame.className = "streak-flame";
-    flame.textContent = "🔥";
   } else {
     flame.className = "streak-flame";
     flame.textContent = "🔥";
@@ -730,7 +743,7 @@ function renderGoals() {
     ? items.map((item, idx) => `
       <div class="dmh-item${item.done ? " done" : ""}" onclick="toggleGoal(${idx})">
         <div class="dmh-cb">${item.done ? '<i class="fas fa-check" style="font-size:.6rem"></i>' : ""}</div>
-        <span class="dmh-item-text">${item.text}</span>
+        <span class="dmh-item-text">${escapeHtml(item.text)}</span>
         <button class="dmh-del" onclick="delGoal(event,${idx})"><i class="fas fa-times"></i></button>
       </div>`).join("")
     : `<div style="text-align:center;padding:.9rem;color:var(--tm);font-size:.8rem;font-family:var(--m)">No goals yet — type one below 👆</div>`;
@@ -791,7 +804,6 @@ async function logout() {
       clearInterval(timerInterval);
       timerInterval = null;
     }
-    
     localStorage.removeItem("activeTimer");
     await auth.signOut();
     localStorage.removeItem("st_profile");
