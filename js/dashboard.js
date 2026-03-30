@@ -604,13 +604,13 @@ const CC = {
 function mkRow(s) {
   return `
     <tr>
-      <td style="color:var(--tm);font-size:.74rem">${escapeHtml(s.date)}发展
-      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}发展
-      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}发展
-      <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}发展
-      <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span>发展
-      <td style="font-size:.74rem;max-width:160px;white-space:normal">${escapeHtml(s.task)}发展
-      <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button>发展
+      <td style="color:var(--tm);font-size:.74rem">${escapeHtml(s.date)}
+      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}
+      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}
+      <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}
+      <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span>
+      <td style="font-size:.74rem;max-width:160px;white-space:normal">${escapeHtml(s.task)}
+      <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button>
      </>
   `;
 }
