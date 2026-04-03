@@ -1497,7 +1497,7 @@ tbody td {
 /* ── BASE CELL ── */
 .calcel {
   aspect-ratio: 1/1;
-  border-radius: 6px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1507,160 +1507,194 @@ tbody td {
   cursor: pointer;
   position: relative;
   background: transparent;
-  transition:
-    background 0.18s,
-    color 0.18s,
-    transform 0.15s,
-    box-shadow 0.18s;
+  transition: color 0.15s ease;
   z-index: 1;
+  isolation: isolate;
 }
 .calcel.oth {
-  opacity: 0.13;
+  opacity: 0.12;
   pointer-events: none;
 }
 
-/* ── HOVER — subtle lift, no big scale ── */
-.calcel:not(.ct2):not(.oth):not(.sk):hover {
-  background: var(--psoft);
-  color: var(--p);
-  transform: scale(0.9);
-  box-shadow:
-    0 0 0 1.5px rgba(33, 82, 224, 0.15),
-    0 2px 6px rgba(33, 82, 224, 0.1);
-  z-index: 5;
-  border-radius: 6px;
-}
-/* streak hover gets orange glow instead */
-.calcel.sk:not(.ct2):not(.oth):hover {
-  transform: scale(1.9);
-  box-shadow:
-    0 0 0 1.5px rgba(224, 104, 43, 0.22),
-    0 2px 6px rgba(224, 104, 43, 0.15);
-  filter: brightness(1.08);
-  z-index: 5;
-}
-
-/* ── TODAY — strong blue circle ── */
-.calcel.ct2 {
-  background: var(--p) !important;
-  color: #fff !important;
-  font-weight: 700;
-  border-radius: 50%;
-  box-shadow:
-    0 2px 10px var(--pglow),
-    0 0 0 3px rgba(33, 82, 224, 0.18);
-}
-.calcel.ct2:hover {
-  transform: scale(1.1);
-  box-shadow:
-    0 4px 16px var(--pglow),
-    0 0 0 4px rgba(33, 82, 224, 0.22);
-}
-
-/* ── FOCUS INTENSITY (blue tones) ── */
-.calcel.i1 {
-  background: rgba(33, 82, 224, 0.11);
-  color: var(--th);
-}
-.calcel.i2 {
-  background: rgba(33, 82, 224, 0.26);
-  color: var(--p);
-  font-weight: 600;
-}
-.calcel.i3 {
-  background: rgba(33, 82, 224, 0.5);
-  color: #fff;
-  font-weight: 600;
-}
-.calcel.i4 {
-  background: rgba(33, 82, 224, 0.82);
-  color: #fff;
-  font-weight: 700;
-}
-
-/* ── STREAK DAYS — warm flame orange gradient ── */
-.calcel.sk {
-  background: linear-gradient(135deg, #ff8c42 0%, #f59e0b 100%) !important;
-  color: #fff !important;
-  font-weight: 700;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(224, 104, 43, 0.35);
-}
-/* lighter streak for low-intensity days */
-.calcel.sk.i1,
-.calcel.sk.i2 {
-  background: linear-gradient(
-    135deg,
-    rgba(224, 104, 43, 0.55),
-    rgba(245, 158, 11, 0.45)
-  ) !important;
-  color: #fff !important;
-  box-shadow: 0 1px 5px rgba(224, 104, 43, 0.22);
-}
-/* rich flame for high-intensity streak days */
-.calcel.sk.i3,
-.calcel.sk.i4 {
-  background: linear-gradient(135deg, #e0682b 0%, #f59e0b 100%) !important;
-  color: #fff !important;
-  box-shadow: 0 3px 10px rgba(224, 104, 43, 0.45);
-}
-/* streak chain connector — horizontal bar linking consecutive days */
-.calcel.sk-start::before,
-.calcel.sk-mid::before,
-.calcel.sk-end::before {
+/* ── SHARED INNER SHAPE via ::before ── */
+/* All visual shapes (square, circle) live on ::before,
+   sized to ~60% of the cell — never the full cell */
+.calcel::before {
   content: "";
   position: absolute;
-  top: 25%;
-  bottom: 25%;
-  background: rgba(224, 104, 43, 0.22);
+  inset: 18%;
+  border-radius: 4px;
+  background: transparent;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1),
+    opacity 0.18s ease;
+  transform: scale(0.82);
+  opacity: 0;
   z-index: -1;
+  pointer-events: none;
+}
+/* date number always floats above the ::before shape pip.
+   The number is a raw text node inside the flex container —
+   we use a wrapping technique: push ::before behind with z-index:-1
+   so the stacking context keeps text on top naturally. */
+
+/* ── NORMAL HOVER — small soft blue square ── */
+@keyframes calPipIn {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.calcel:not(.ct2):not(.oth):not(.sk):not(.i1):not(.i2):not(.i3):not(.i4):hover::before {
+  background: var(--psoft);
+  box-shadow: 0 0 0 1px rgba(33, 82, 224, 0.18);
+  transform: scale(1);
+  opacity: 1;
+  animation: calPipIn 0.2s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+.calcel:not(.ct2):not(.oth):not(.sk):not(.i1):not(.i2):not(.i3):not(.i4):hover {
+  color: var(--p);
+}
+
+/* ── FOCUS INTENSITY — small blue square, same inset ── */
+.calcel.i1::before {
+  background: rgba(33, 82, 224, 0.12);
+  transform: scale(1); opacity: 1;
+}
+.calcel.i1 { color: var(--th); }
+
+.calcel.i2::before {
+  background: rgba(33, 82, 224, 0.28);
+  transform: scale(1); opacity: 1;
+}
+.calcel.i2 { color: var(--p); font-weight: 600; }
+
+.calcel.i3::before {
+  background: rgba(33, 82, 224, 0.52);
+  transform: scale(1); opacity: 1;
+}
+.calcel.i3 { color: #fff; font-weight: 600; }
+
+.calcel.i4::before {
+  background: rgba(33, 82, 224, 0.84);
+  transform: scale(1); opacity: 1;
+}
+.calcel.i4 { color: #fff; font-weight: 700; }
+
+/* intensity cells hover — brighten the pip only */
+.calcel.i1:hover::before,
+.calcel.i2:hover::before,
+.calcel.i3:hover::before,
+.calcel.i4:hover::before {
+  filter: brightness(1.12);
+  box-shadow: 0 0 0 1px rgba(33, 82, 224, 0.22);
+}
+
+/* ── TODAY — compact circle, ~60% cell width ── */
+@keyframes todayPulse {
+  0%, 100% { box-shadow: 0 2px 7px var(--pglow), 0 0 0 2px rgba(33,82,224,0.14); }
+  50%       { box-shadow: 0 2px 7px var(--pglow), 0 0 0 4px rgba(33,82,224,0.06); }
+}
+.calcel.ct2::before {
+  background: var(--p);
+  border-radius: 50%;
+  transform: scale(1);
+  opacity: 1;
+  animation: todayPulse 2.8s ease-in-out infinite;
+}
+.calcel.ct2 { color: #fff !important; font-weight: 700; }
+.calcel.ct2:hover::before {
+  filter: brightness(1.1);
+  animation: none;
+  box-shadow: 0 3px 10px var(--pglow), 0 0 0 3px rgba(33,82,224,0.2);
+}
+
+/* ── STREAK DAYS — small orange square ── */
+@keyframes skEnter {
+  from { transform: scale(0.7); opacity: 0.5; }
+  to   { transform: scale(1);   opacity: 1;   }
+}
+.calcel.sk::before {
+  background: linear-gradient(135deg, #ff8c42 0%, #f59e0b 100%);
+  border-radius: 4px;
+  transform: scale(1);
+  opacity: 1;
+  box-shadow: 0 1px 5px rgba(224, 104, 43, 0.28);
+  animation: skEnter 0.25s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+}
+.calcel.sk { color: #fff !important; font-weight: 700; }
+
+.calcel.sk.i1::before,
+.calcel.sk.i2::before {
+  background: linear-gradient(135deg, rgba(224,104,43,0.55), rgba(245,158,11,0.45));
+  box-shadow: none;
+}
+.calcel.sk.i3::before,
+.calcel.sk.i4::before {
+  background: linear-gradient(135deg, #e0682b 0%, #f59e0b 100%);
+  box-shadow: 0 2px 7px rgba(224, 104, 43, 0.35);
+}
+
+/* streak hover — glow the pip */
+.calcel.sk:not(.ct2):not(.oth):hover::before {
+  filter: brightness(1.1) saturate(1.1);
+  box-shadow: 0 0 0 1.5px rgba(224, 104, 43, 0.4), 0 2px 8px rgba(224, 104, 43, 0.22);
+}
+
+/* ── STREAK CHAIN CONNECTORS ── */
+.calcel.sk-start::after,
+.calcel.sk-mid::after,
+.calcel.sk-end::after {
+  content: "";
+  position: absolute;
+  top: 42%;
+  bottom: 42%;
+  background: rgba(224, 104, 43, 0.18);
+  z-index: 0;
   pointer-events: none;
   border-radius: 0;
 }
-.calcel.sk-start::before {
-  left: 50%;
-  right: -3px;
-}
-.calcel.sk-mid::before {
-  left: -3px;
-  right: -3px;
-}
-.calcel.sk-end::before {
-  left: -3px;
-  right: 50%;
-}
+.calcel.sk-start::after { left: 50%; right: -2px; }
+.calcel.sk-mid::after   { left: -2px; right: -2px; }
+.calcel.sk-end::after   { left: -2px; right: 50%; }
 
-/* today ON streak — bright amber circle */
-.calcel.ct2.sk {
-  background: linear-gradient(135deg, #ff8c42, #f59e0b) !important;
-  color: #fff !important;
-  border-radius: 50%;
-  box-shadow:
-    0 3px 14px rgba(224, 104, 43, 0.55),
-    0 0 0 3px rgba(245, 158, 11, 0.25);
+/* ── TODAY ON STREAK — small amber circle ── */
+@keyframes skTodayPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(224,104,43,0.4), 0 0 0 2px rgba(245,158,11,0.18); }
+  50%       { box-shadow: 0 2px 8px rgba(224,104,43,0.4), 0 0 0 4px rgba(245,158,11,0.06); }
 }
-.calcel.ct2.sk:hover {
-  box-shadow:
-    0 5px 18px rgba(224, 104, 43, 0.6),
-    0 0 0 4px rgba(245, 158, 11, 0.3);
+.calcel.ct2.sk::before {
+  background: linear-gradient(135deg, #ff8c42, #f59e0b);
+  border-radius: 50%;
+  animation: skTodayPulse 2.8s ease-in-out infinite;
+}
+.calcel.ct2.sk:hover::before {
+  filter: brightness(1.1);
+  animation: none;
+  box-shadow: 0 3px 12px rgba(224,104,43,0.45), 0 0 0 3px rgba(245,158,11,0.22);
 }
 
 /* ── GOAL HIT STAR ── */
+@keyframes starPop {
+  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+  70%  { transform: scale(1.3) rotate(8deg);  opacity: 1; }
+  100% { transform: scale(1) rotate(0deg);    opacity: 1; }
+}
 .cal-star {
   position: absolute;
-  top: -2px;
-  right: 0px;
-  font-size: 0.5rem;
+  top: 4%;
+  right: 4%;
+  font-size: 0.42rem;
   color: #fff;
   pointer-events: none;
   z-index: 3;
-  text-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
-  filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.9));
+  text-shadow: 0 0 3px rgba(0,0,0,0.3);
+  filter: drop-shadow(0 0 2px rgba(245,158,11,0.8));
+  animation: starPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-/* on non-streak/non-today cells, star is yellow */
 .calcel:not(.sk):not(.ct2) .cal-star {
   color: var(--yel);
-  text-shadow: 0 0 4px rgba(245, 158, 11, 0.6);
+  text-shadow: 0 0 3px rgba(245,158,11,0.5);
 }
 
 .calfoot {
