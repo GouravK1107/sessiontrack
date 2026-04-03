@@ -13,9 +13,17 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.11.0/f
 let currentUser = null;
 let currentUserId = null;
 let allUsers = [];
-let allSessionsCache = {}; // Cache sessions for each user
+let allSessionsCache = {};
 let lbTab = "all";
 let activeU = null;
+
+// Points per hour for each category
+const POINTS_PER_HOUR = {
+  "Deep Work": 20,
+  "Learning": 15,
+  "Normal Work": 10,
+  "Low Productivity": 5
+};
 
 /* ── UTILS ── */
 const $ = (id) => document.getElementById(id);
@@ -146,9 +154,47 @@ function initHdr(name = "User") {
   }
 }
 
+/* ── CALCULATE POINTS FOR SESSIONS ── */
+function calculatePoints(sessions) {
+  let totalPoints = 0;
+  sessions.forEach(session => {
+    const hours = session.duration / 3600;
+    const pointsPerHour = POINTS_PER_HOUR[session.category] || 5;
+    totalPoints += Math.round(hours * pointsPerHour);
+  });
+  return totalPoints;
+}
+
+/* ── CALCULATE POINTS FOR TIME PERIOD ── */
+function calculateUserPoints(sessions, period = "all") {
+  if (!sessions.length) return 0;
+  
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  let filteredSessions = sessions;
+  
+  if (period === "week") {
+    filteredSessions = sessions.filter(s => {
+      const sessionDate = parseD(s.date);
+      return sessionDate && sessionDate >= startOfWeek;
+    });
+  } else if (period === "month") {
+    filteredSessions = sessions.filter(s => {
+      const sessionDate = parseD(s.date);
+      return sessionDate && sessionDate >= startOfMonth;
+    });
+  }
+  
+  return calculatePoints(filteredSessions);
+}
+
 /* ── LOAD SESSIONS FOR A USER (with caching) ── */
 async function loadUserSessions(userId) {
-  // Return from cache if available
   if (allSessionsCache[userId]) {
     return allSessionsCache[userId];
   }
@@ -164,7 +210,6 @@ async function loadUserSessions(userId) {
       id: doc.id,
       ...doc.data()
     }));
-    // Cache the sessions
     allSessionsCache[userId] = sessions;
     return sessions;
   } catch (error) {
@@ -189,47 +234,15 @@ async function loadAllUsers() {
   }
 }
 
-/* ── CALCULATE USER HOURS FOR TIME PERIOD ── */
-function calculateUserHours(sessions, period = "all") {
-  if (!sessions.length) return 0;
-  
-  const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
-  startOfWeek.setHours(0, 0, 0, 0);
-  
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  
-  let filteredSessions = sessions;
-  
-  if (period === "week") {
-    filteredSessions = sessions.filter(s => {
-      const sessionDate = parseD(s.date);
-      return sessionDate && sessionDate >= startOfWeek;
-    });
-  } else if (period === "month") {
-    filteredSessions = sessions.filter(s => {
-      const sessionDate = parseD(s.date);
-      return sessionDate && sessionDate >= startOfMonth;
-    });
-  }
-  
-  const totalSeconds = filteredSessions.reduce((sum, s) => sum + s.duration, 0);
-  return Math.round(totalSeconds / 3600);
-}
-
 /* ── CALCULATE STREAK ── */
-/* ── CALCULATE STREAK (Robust version) ── */
 function calcStreak(sessions) {
   if (!sessions.length) return 0;
   
-  // Create a map of dates with sessions
   const sessionMap = new Map();
   sessions.forEach(s => {
     sessionMap.set(s.date, true);
   });
   
-  // Get today's date
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = fmtDate(today);
@@ -237,12 +250,23 @@ function calcStreak(sessions) {
   let streak = 0;
   let checkDate = new Date(today);
   
-  // Only count streak if there's a session today
+  // If no session today, check yesterday's streak (for display)
   if (!sessionMap.has(todayStr)) {
-    return 0;
+    let tempDate = new Date(today);
+    tempDate.setDate(tempDate.getDate() - 1);
+    while (true) {
+      const dateStr = fmtDate(tempDate);
+      if (sessionMap.has(dateStr)) {
+        streak++;
+        tempDate.setDate(tempDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return streak;
   }
   
-  // Count consecutive days
+  // Count consecutive days including today
   while (true) {
     const dateStr = fmtDate(checkDate);
     if (sessionMap.has(dateStr)) {
@@ -290,14 +314,14 @@ function getUserColor(user) {
   return user.color || defaultColors[Math.abs((user.id?.charCodeAt(0) || 0)) % defaultColors.length];
 }
 
-/* ── LOAD ALL USER DATA WITH SESSIONS ── */
+/* ── LOAD ALL USER DATA WITH POINTS ── */
 async function loadAllUserData() {
   const users = await loadAllUsers();
   const userData = [];
   
   for (const user of users) {
     const sessions = await loadUserSessions(user.id);
-    const hours = calculateUserHours(sessions, lbTab);
+    const points = calculateUserPoints(sessions, lbTab);
     const streak = calcStreak(sessions);
     const totalSessions = sessions.length;
     const recentProject = getRecentProject(sessions);
@@ -308,27 +332,27 @@ async function loadAllUserData() {
       role: user.role || "SessionTrack member",
       color: getUserColor(user),
       initials: initials(user.name || user.email?.split('@')[0] || "User"),
-      hours: hours,
+      points: points,
       streak: streak,
       totalSessions: totalSessions,
       recentProject: recentProject,
       isMe: user.id === currentUserId,
-      sessions: sessions // Store sessions for later use
+      sessions: sessions
     });
   }
   
-  // Sort by hours (descending)
-  return userData.sort((a, b) => b.hours - a.hours);
+  // Sort by points (descending)
+  return userData.sort((a, b) => b.points - a.points);
 }
 
-/* ── RENDER LEADERBOARD (without project text below name) ── */
+/* ── RENDER LEADERBOARD ── */
 async function renderLeaderboard() {
   if (!allUsers.length && currentUserId) {
     $("lbList").innerHTML = '<div class="loading-state">Loading leaderboard...</div>';
   }
   
   const userData = await loadAllUserData();
-  const maxHours = Math.max(...userData.map(u => u.hours), 1);
+  const maxPoints = Math.max(...userData.map(u => u.points), 1);
   const rankColors = ["r1", "r2", "r3"];
   
   if (!userData.length) {
@@ -339,7 +363,7 @@ async function renderLeaderboard() {
   $("lbList").innerHTML = userData.map((user, index) => {
     const rank = index + 1;
     const rankClass = rank <= 3 ? rankColors[rank - 1] : "rn";
-    const percentage = Math.round((user.hours / maxHours) * 100);
+    const percentage = Math.round((user.points / maxPoints) * 100);
     
     return `
       <div class="lbr${user.isMe ? " me" : ""}${activeU === user.id ? " act" : ""}" onclick="openUp('${user.id}')" style="animation-delay:${index * 0.03}s">
@@ -350,13 +374,12 @@ async function renderLeaderboard() {
             <span class="lbn">${escapeHtml(user.name)}</span>
             ${user.isMe ? '<span class="ytag">YOU</span>' : ""}
           </div>
-          <!-- The project/session text is removed from here -->
           <div class="lbbb">
             <div class="lbbf" style="width:${percentage}%"></div>
           </div>
         </div>
         <div class="lbright">
-          <div class="lbh">${user.hours}h</div>
+          <div class="lbh">${user.points} pts</div>
           <div class="lbt">${user.streak} day streak</div>
         </div>
         <i class="fas fa-chevron-right lbarw"></i>
@@ -369,18 +392,13 @@ async function renderLeaderboard() {
 async function openUp(userId) {
   activeU = userId;
   
-  // Get user data from cache or load
-  let userData = null;
-  let userSessions = [];
-  
-  // Find user in allUsers
   const user = allUsers.find(u => u.id === userId);
   if (!user) return;
   
   const isMe = userId === currentUserId;
-  userSessions = await loadUserSessions(userId);
+  const userSessions = await loadUserSessions(userId);
   
-  const totalHours = Math.round(userSessions.reduce((sum, s) => sum + s.duration, 0) / 3600);
+  const totalPoints = calculatePoints(userSessions);
   const totalSessions = userSessions.length;
   const streak = calcStreak(userSessions);
   const deepHours = Math.round(userSessions
@@ -406,6 +424,7 @@ async function openUp(userId) {
   if (streak >= 1) chips.push(`<span class="upchip"><i class="fas fa-fire"></i> ${streak}-day streak</span>`);
   if (deepHours > 0) chips.push(`<span class="upchip"><i class="fas fa-brain"></i> ${deepHours}h deep work</span>`);
   if (totalSessions > 0) chips.push(`<span class="upchip"><i class="fas fa-play-circle"></i> ${totalSessions} sessions</span>`);
+  if (totalPoints > 0) chips.push(`<span class="upchip"><i class="fas fa-star"></i> ${totalPoints} points</span>`);
   
   const userColor = getUserColor(user);
   const userInitials = initials(user.name || user.email?.split('@')[0] || "User");
@@ -422,7 +441,7 @@ async function openUp(userId) {
       <div class="upch">${chips.join("")}</div>
     </div>
     <div class="upsb">
-      <div class="ups"><div class="upsv">${totalHours}h</div><div class="upsl">Total</div></div>
+      <div class="ups"><div class="upsv">${totalPoints}</div><div class="upsl">Points</div></div>
       <div class="ups"><div class="upsv">${totalSessions}</div><div class="upsl">Sessions</div></div>
       <div class="ups"><div class="upsv">${streak}</div><div class="upsl">Streak</div></div>
     </div>
@@ -526,16 +545,9 @@ onAuthStateChanged(auth, async (user) => {
 /* ── LOGOUT FUNCTION ── */
 async function logout() {
   try {    
-    // Clear saved timer state
     localStorage.removeItem("activeTimer");
-    
-    // Sign out from Firebase
     await auth.signOut();
-    
-    // Clear any other user data from localStorage
     localStorage.removeItem("st_profile");
-    
-    // Redirect to login page
     window.location.href = "login.html";
   } catch (error) {
     console.error("Error during logout:", error);

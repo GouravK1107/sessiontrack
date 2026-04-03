@@ -334,6 +334,7 @@ async function deleteSession(sessionId) {
 }
 
 /* ── CALCULATE STREAK ── */
+/* ── CALCULATE STREAK (Fixed - shows previous streak until new session) ── */
 function calcStreak(sessions) {
   if (!sessions.length) return 0;
   
@@ -349,15 +350,29 @@ function calcStreak(sessions) {
   let streak = 0;
   let checkDate = new Date(today);
   
-  if (!sessionMap.has(todayStr)) {
-    return 0;
+  // If there's a session today, count from today
+  if (sessionMap.has(todayStr)) {
+    while (true) {
+      const dateStr = fmtDate(checkDate);
+      if (sessionMap.has(dateStr)) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return streak;
   }
   
+  // If no session today, show yesterday's streak (so user knows their streak until they complete today)
+  let tempDate = new Date(today);
+  tempDate.setDate(tempDate.getDate() - 1);
+  
   while (true) {
-    const dateStr = fmtDate(checkDate);
+    const dateStr = fmtDate(tempDate);
     if (sessionMap.has(dateStr)) {
       streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
+      tempDate.setDate(tempDate.getDate() - 1);
     } else {
       break;
     }
@@ -601,17 +616,31 @@ const CC = {
   "Low Productivity": "cp-w",
 };
 
+/* ── CALCULATE POINTS FOR A SESSION ── */
+function getSessionPoints(session) {
+  const hours = session.duration / 3600;
+  const pointsPerHour = {
+    "Deep Work": 20,
+    "Learning": 15,
+    "Normal Work": 10,
+    "Low Productivity": 5
+  };
+  return Math.round(hours * (pointsPerHour[session.category] || 5));
+}
+
 function mkRow(s) {
+  const points = getSessionPoints(s);
   return `
     <tr>
-      <td style="color:var(--tm);font-size:.74rem">${escapeHtml(s.date)}
-      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}
-      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}
-      <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}
-      <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span>
-      <td style="font-size:.74rem;max-width:160px;white-space:normal">${escapeHtml(s.task)}
-      <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button>
-     </>
+      <td style="color:var(--tm);font-size:.74rem">${escapeHtml(s.date)}发展
+      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}发展
+      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}发展
+      <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}发展
+      <td style="font-family:var(--m);font-weight:600;color:var(--p)">${points} pts</td>
+      <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span>发展
+      <td style="font-size:.74rem;max-width:160px;white-space:normal">${escapeHtml(s.task)}发展
+      <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button>发展
+    </tr>
   `;
 }
 
