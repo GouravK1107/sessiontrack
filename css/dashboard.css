@@ -740,6 +740,9 @@ tbody td {
   flex-direction: column;
   gap: 0.9rem;
   justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
 }
 .tsr {
   display: flex;
@@ -761,8 +764,7 @@ tbody td {
   animation: blink 1.5s infinite;
 }
 @keyframes blink {
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
   }
   50% {
@@ -795,10 +797,26 @@ tbody td {
   color: var(--th);
   letter-spacing: -0.02em;
   line-height: 1;
-  transition: color 0.3s;
+  transition: color 0.5s ease, text-shadow 0.5s ease;
 }
 .tclk.run {
   color: var(--p);
+}
+.tclk.stage-1 {
+  color: #2152e0;
+  text-shadow: 0 0 10px rgba(33, 82, 224, 0.3);
+}
+.tclk.stage-2 {
+  color: #20b08a;
+  text-shadow: 0 0 12px rgba(32, 176, 138, 0.4);
+}
+.tclk.stage-3 {
+  color: #f59e0b;
+  text-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+}
+.tclk.stage-4 {
+  color: #e0682b;
+  text-shadow: 0 0 20px rgba(224, 104, 43, 0.6);
 }
 .tmeta {
   display: flex;
@@ -972,8 +990,7 @@ tbody td {
   animation: pulseG 0.55s ease;
 }
 @keyframes pulseG {
-  0%,
-  100% {
+  0%, 100% {
     transform: scale(1);
   }
   50% {
@@ -1099,125 +1116,218 @@ tbody td {
   background: var(--plt);
   transform: scale(1.08);
 }
+
+/* ============================================
+   NEW STREAK CARD DESIGN
+   ============================================ */
 .streak-card {
   padding: 1.2rem 1.3rem;
+  background: var(--s);
+  border-radius: var(--r);
+  border: 1px solid var(--brd);
+  transition: var(--tr);
+  overflow: hidden;
+}
+
+/* Modern Streak Container */
+.modern-streak {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* Streak Ring Progress */
+.streak-ring {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  flex-shrink: 0;
+}
+
+.streak-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.streak-ring-bg {
+  stroke: var(--s2);
+  stroke-width: 8;
+  fill: none;
+}
+
+.streak-ring-progress {
+  stroke: url(#streakGradient);
+  stroke-width: 8;
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.streak-ring-inner {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-}
-.streak-top {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-  flex-wrap: wrap;
-}
-.streak-flame {
-  width: 58px;
-  height: 58px;
-  border-radius: 1rem;
-  flex-shrink: 0;
-  background: linear-gradient(135deg, var(--org), var(--yel));
-  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
-  box-shadow: 0 4px 14px rgba(224, 104, 43, 0.35);
-  animation: flameFlick 2s ease-in-out infinite;
 }
-@keyframes flameFlick {
-  0%,
-  100% {
-    box-shadow: 0 4px 14px rgba(224, 104, 43, 0.35);
-  }
-  50% {
-    box-shadow: 0 6px 20px rgba(224, 104, 43, 0.55);
-  }
-}
-.streak-flame.zero {
-  background: var(--s2);
-  box-shadow: none;
-  animation: none;
-  font-size: 1.3rem;
-}
-.streak-nums {
-  flex: 1;
-}
-.streak-current {
-  font-size: clamp(2rem, 4vw, 2.8rem);
+
+.streak-ring-value {
+  font-size: 1.8rem;
   font-weight: 800;
   color: var(--th);
   font-family: var(--m);
   line-height: 1;
 }
-.streak-lbl {
-  font-size: 0.72rem;
-  color: var(--org);
+
+.streak-ring-label {
+  font-size: 0.55rem;
+  color: var(--tm);
+  font-family: var(--m);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Streak Info */
+.streak-info {
+  flex: 1;
+  min-width: 150px;
+}
+
+.streak-message {
+  font-size: 0.85rem;
   font-weight: 600;
+  color: var(--th);
+  margin-bottom: 0.25rem;
+}
+
+.streak-sub {
+  font-size: 0.7rem;
+  color: var(--tm);
   font-family: var(--m);
 }
-.streak-meta {
+
+/* Streak Stats Grid */
+.streak-stats-grid {
   display: flex;
   gap: 1.2rem;
   flex-wrap: wrap;
 }
-.streak-stat-val {
-  font-size: 1rem;
+
+.streak-stat-item {
+  text-align: center;
+  padding: 0.5rem 1rem;
+  background: var(--s2);
+  border-radius: 1rem;
+  min-width: 80px;
+}
+
+.streak-stat-value {
+  font-size: 1.1rem;
   font-weight: 800;
-  color: var(--th);
+  color: var(--p);
   font-family: var(--m);
 }
-.streak-stat-lbl {
-  font-size: 0.62rem;
+
+.streak-stat-label {
+  font-size: 0.6rem;
   color: var(--tm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
+
+/* Fire streak indicator */
+.streak-fire {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: linear-gradient(135deg, rgba(224,104,43,0.15), rgba(245,158,11,0.1));
+  padding: 0.4rem 1rem;
+  border-radius: 2rem;
+  border: 1px solid rgba(224,104,43,0.2);
+}
+
+.streak-fire-icon {
+  font-size: 1.1rem;
+}
+
+.streak-fire-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--org);
+}
+
+/* 30-day strip */
 .streak-strip {
   display: flex;
-  gap: 2px;
-  overflow: hidden;
+  gap: 3px;
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--brd);
 }
-.ss-cell {
-  flex: 1;
-  min-width: 0;
-  height: 10px;
-  border-radius: 2px;
-  background: var(--s2);
+
+/* ============================================
+   TIMER CARD RGB EFFECT
+   ============================================ */
+.tc2.running {
+  animation: rgbGlow 3s ease infinite;
 }
-.ss-cell.s1 {
-  background: rgba(224, 104, 43, 0.25);
-}
-.ss-cell.s2 {
-  background: rgba(224, 104, 43, 0.55);
-}
-.ss-cell.s3 {
-  background: rgba(224, 104, 43, 0.8);
-}
-.ss-cell.s4 {
-  background: linear-gradient(90deg, var(--org), var(--yel));
-}
-.ss-cell.today-c {
-  outline: 1.5px solid var(--p);
-  outline-offset: 1px;
-}
-@media (max-width: 1100px) {
-  .tg {
-    grid-template-columns: 1fr;
+
+@keyframes rgbGlow {
+  0% {
+    box-shadow: 0 0 15px rgba(33, 82, 224, 0.3), inset 0 0 5px rgba(33, 82, 224, 0.1);
+    border-color: rgba(33, 82, 224, 0.3);
+  }
+  33% {
+    box-shadow: 0 0 25px rgba(32, 176, 138, 0.3), inset 0 0 8px rgba(32, 176, 138, 0.1);
+    border-color: rgba(32, 176, 138, 0.3);
+  }
+  66% {
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.3), inset 0 0 8px rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(33, 82, 224, 0.3), inset 0 0 5px rgba(33, 82, 224, 0.1);
+    border-color: rgba(33, 82, 224, 0.3);
   }
 }
-@media (max-width: 768px) {
-  .tbtns {
-    grid-template-columns: 1fr;
+
+.tc2.running::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: var(--r);
+  pointer-events: none;
+  animation: rgbPulse 3s ease infinite;
+  z-index: 0;
+}
+
+@keyframes rgbPulse {
+  0% {
+    background: radial-gradient(circle at 30% 30%, rgba(33, 82, 224, 0.05), transparent 70%);
   }
-  .f2 {
-    grid-template-columns: 1fr;
+  33% {
+    background: radial-gradient(circle at 50% 50%, rgba(32, 176, 138, 0.06), transparent 70%);
   }
-  .streak-meta {
-    gap: 0.8rem;
+  66% {
+    background: radial-gradient(circle at 70% 70%, rgba(245, 158, 11, 0.06), transparent 70%);
+  }
+  100% {
+    background: radial-gradient(circle at 30% 30%, rgba(33, 82, 224, 0.05), transparent 70%);
   }
 }
-@media (max-width: 500px) {
-  .tclk {
-    font-size: 2rem;
-  }
+
+.tc2.running .tform,
+.tc2.running .tbtns,
+.tc2.running .tsr {
+  position: relative;
+  z-index: 1;
 }
 
 .sb-av {
@@ -1227,4 +1337,30 @@ tbody td {
 .sb-av:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .modern-streak {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .streak-info {
+    text-align: center;
+  }
+  
+  .streak-stats-grid {
+    justify-content: center;
+  }
+  
+  .streak-ring {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .streak-ring-value {
+    font-size: 1.4rem;
+  }
 }

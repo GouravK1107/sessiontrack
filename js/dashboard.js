@@ -77,6 +77,21 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 
+// Points per hour for each category
+const POINTS_PER_HOUR = {
+  "Deep Work": 20,
+  "Learning": 15,
+  "Normal Work": 10,
+  "Low Productivity": 5
+};
+
+/* ── CALCULATE POINTS FOR A SESSION ── */
+function getSessionPoints(session) {
+  const hours = session.duration / 3600;
+  const pointsPerHour = POINTS_PER_HOUR[session.category] || 5;
+  return Math.round(hours * pointsPerHour);
+}
+
 /* ── TIMER PERSISTENCE FUNCTIONS ── */
 function saveTimerState() {
   if (isTimerRunning && sessionStartTime) {
@@ -99,7 +114,12 @@ function loadTimerState() {
     try {
       const state = JSON.parse(savedTimer);
       if (state.isRunning && state.startTime) {
-        sessionStartTime = new Date(state.startTime);
+        const startTimeMs = state.startTime;
+        const now = Date.now();
+        const elapsed = Math.floor((now - startTimeMs) / 1000);
+        
+        sessionStartTime = new Date(startTimeMs);
+        elapsedSeconds = elapsed;
         isTimerRunning = true;
 
         if (state.category && $("catSel")) $("catSel").value = state.category;
@@ -125,6 +145,14 @@ function startTimerUI() {
   $("tSt").textContent = fmt12(sessionStartTime);
   $("tDt").textContent = fmtDate(sessionStartTime);
   $("tClk").classList.add("run");
+  
+  // Add running class to timer card for RGB effect
+  const timerCard = $("tc2");
+  if (timerCard) timerCard.classList.add("running");
+  
+  // Set initial timer stage
+  updateTimerStage(0);
+  
   $("sDot").className = "sdot run";
   $("sTxtEl").textContent = "Running";
   $("btnStart").disabled = true;
@@ -150,6 +178,28 @@ function updateTimerDisplay() {
   elapsedSeconds = Math.floor((now - sessionStartTime.getTime()) / 1000);
 
   $("tClk").textContent = formatTime(elapsedSeconds);
+  
+  // Update timer stage for color transition
+  updateTimerStage(elapsedSeconds);
+}
+
+function updateTimerStage(seconds) {
+  const tclk = $("tClk");
+  if (!tclk) return;
+  
+  // Remove existing stage classes
+  tclk.classList.remove("stage-1", "stage-2", "stage-3", "stage-4");
+  
+  // Add stage based on elapsed time
+  if (seconds < 600) { // Less than 10 minutes - Calm blue
+    tclk.classList.add("stage-1");
+  } else if (seconds < 1800) { // 10-30 minutes - Growing green
+    tclk.classList.add("stage-2");
+  } else if (seconds < 3600) { // 30-60 minutes - Energizing orange
+    tclk.classList.add("stage-3");
+  } else { // 1+ hours - Peak performance red-orange
+    tclk.classList.add("stage-4");
+  }
 }
 
 /* ── DARK MODE ── */
@@ -334,7 +384,6 @@ async function deleteSession(sessionId) {
 }
 
 /* ── CALCULATE STREAK ── */
-/* ── CALCULATE STREAK (Fixed - shows previous streak until new session) ── */
 function calcStreak(sessions) {
   if (!sessions.length) return 0;
   
@@ -350,7 +399,6 @@ function calcStreak(sessions) {
   let streak = 0;
   let checkDate = new Date(today);
   
-  // If there's a session today, count from today
   if (sessionMap.has(todayStr)) {
     while (true) {
       const dateStr = fmtDate(checkDate);
@@ -364,7 +412,6 @@ function calcStreak(sessions) {
     return streak;
   }
   
-  // If no session today, show yesterday's streak (so user knows their streak until they complete today)
   let tempDate = new Date(today);
   tempDate.setDate(tempDate.getDate() - 1);
   
@@ -498,13 +545,15 @@ async function stopSess() {
     return;
   }
 
+  // Remove running class from timer card
+  const timerCard = $("tc2");
+  if (timerCard) timerCard.classList.remove("running");
+
   const endTime = new Date();
   const startTime = sessionStartTime;
 
-  // Calculate real duration
   const finalDuration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
 
-  // Stop interval
   if (timerInterval) {
     clearInterval(timerInterval);
     timerInterval = null;
@@ -514,7 +563,6 @@ async function stopSess() {
   let project = getProjVal();
   const task = $("taskInp").value.trim() || "No description";
 
-  // Handle "OTHER" project
   if (project === "other") {
     const otherInput = document.querySelector("#projOther");
     if (otherInput && otherInput.value.trim()) {
@@ -537,7 +585,6 @@ async function stopSess() {
     }
   }
 
-  // Save session
   const sessionData = {
     date: fmtDate(startTime),
     start: fmt12(startTime),
@@ -551,7 +598,6 @@ async function stopSess() {
 
   await saveSession(sessionData);
 
-  // Mark goals
   if (project && project !== "—") {
     const goals = getTodayGoals();
     let goalFound = false;
@@ -577,9 +623,8 @@ async function stopSess() {
     }
   }
 
-  // Reset UI
   $("tClk").textContent = "00:00:00";
-  $("tClk").classList.remove("run");
+  $("tClk").classList.remove("run", "stage-1", "stage-2", "stage-3", "stage-4");
   $("sDot").className = "sdot idle";
   $("sTxtEl").textContent = "Idle";
   $("tSt").textContent = "--:--";
@@ -593,14 +638,11 @@ async function stopSess() {
   const pw = $("projWrap");
   if (pw) pw.querySelectorAll("input,select").forEach((el) => (el.disabled = false));
 
-  // Reset state
   elapsedSeconds = 0;
   sessionStartTime = null;
   isTimerRunning = false;
 
   updateProjField();
-  
-  // 🔥 CRITICAL: Clear saved timer state from localStorage
   localStorage.removeItem("activeTimer");
 
   await refreshDashboard();
@@ -616,18 +658,6 @@ const CC = {
   "Low Productivity": "cp-w",
 };
 
-/* ── CALCULATE POINTS FOR A SESSION ── */
-function getSessionPoints(session) {
-  const hours = session.duration / 3600;
-  const pointsPerHour = {
-    "Deep Work": 20,
-    "Learning": 15,
-    "Normal Work": 10,
-    "Low Productivity": 5
-  };
-  return Math.round(hours * (pointsPerHour[session.category] || 5));
-}
-
 function mkRow(s) {
   const points = getSessionPoints(s);
   return `
@@ -636,7 +666,7 @@ function mkRow(s) {
       <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}
       <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}
       <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}
-      <td style="font-family:var(--m);font-weight:600;color:var(--p)">${points} pts</td>
+      <td style="font-family:var(--m);font-weight:600;color:var(--p)">${points} pts
       <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span>
       <td style="font-size:.74rem;max-width:160px;white-space:normal">${escapeHtml(s.task)}
       <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button>
@@ -663,8 +693,8 @@ function renderRecentSessions() {
           <td class="etd" colspan="7">
             <i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>
             No sessions yet. Start your first!
-           </td>
-         </>
+          
+        </tr>
       `;
     }
   }
@@ -703,7 +733,7 @@ function renderStats() {
   $("sSt").textContent = streak;
 }
 
-/* ── STREAK CARD ── */
+/* ── STREAK CARD (Modern Design) ── */
 function renderStreakCard() {
   const cur = calcStreak(userSessions);
   const best = calcLongestStreak(userSessions);
@@ -720,35 +750,115 @@ function renderStreakCard() {
   const daysWithSess = [...new Set(userSessions.map(s => s.date))];
   const goalDays = daysWithSess.filter(ds => isGoalHit(ds)).length;
   
-  $("strkCur").textContent = cur;
-  $("strkLbl").textContent = cur > 1 ? "day streak 🔥" : "day streak";
-  $("strkBest").textContent = best;
-  $("strkMon").textContent = monthDays;
-  $("strkGoalDays").textContent = goalDays;
+  // Calculate ring progress (max streak 30 days for full circle)
+  const maxStreak = 30;
+  const ringProgress = Math.min(cur / maxStreak, 1);
+  const circumference = 2 * Math.PI * 38;
+  const dashArray = ringProgress * circumference;
   
-  const flame = $("strkFlame");
+  // Get streak message based on value
+  let streakMessage = "";
+  let streakSubMessage = "";
+  
   if (cur === 0) {
-    flame.className = "streak-flame zero";
-    flame.textContent = "💤";
+    streakMessage = "Start your first session today! 🌱";
+    streakSubMessage = "Complete a session to begin your streak";
+  } else if (cur < 3) {
+    streakMessage = `🔥 ${cur} day streak - Great start!`;
+    streakSubMessage = "Keep the momentum going";
+  } else if (cur < 7) {
+    streakMessage = `⚡ ${cur} day streak - You're on fire!`;
+    streakSubMessage = "One week is just around the corner";
+  } else if (cur < 14) {
+    streakMessage = `🎯 ${cur} day streak - Incredible consistency!`;
+    streakSubMessage = "You're building an amazing habit";
+  } else if (cur < 21) {
+    streakMessage = `🏆 ${cur} day streak - Elite focus!`;
+    streakSubMessage = "You're in the top tier of focus";
   } else {
-    flame.className = "streak-flame";
-    flame.textContent = "🔥";
+    streakMessage = `👑 ${cur} day streak - LEGENDARY!`;
+    streakSubMessage = "Absolute focus mastery";
   }
   
+  // Get fire icon based on streak
+  let fireIcon = "🔥";
+  if (cur === 0) fireIcon = "💤";
+  else if (cur < 3) fireIcon = "🌱";
+  else if (cur < 7) fireIcon = "🔥";
+  else if (cur < 14) fireIcon = "⚡";
+  else if (cur < 21) fireIcon = "🏆";
+  else fireIcon = "👑";
+  
+  const streakCard = $("streakCard");
+  if (streakCard) {
+    streakCard.innerHTML = `
+      <div class="modern-streak">
+        <div class="streak-ring">
+          <svg class="streak-ring-svg" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="streakGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#2152e0" />
+                <stop offset="50%" style="stop-color:#e0682b" />
+                <stop offset="100%" style="stop-color:#f59e0b" />
+              </linearGradient>
+            </defs>
+            <circle class="streak-ring-bg" cx="50" cy="50" r="38"></circle>
+            <circle class="streak-ring-progress" cx="50" cy="50" r="38" 
+              stroke-dasharray="${dashArray} ${circumference}" 
+              stroke-dashoffset="0"></circle>
+          </svg>
+          <div class="streak-ring-inner">
+            <span class="streak-ring-value">${cur}</span>
+            <span class="streak-ring-label">days</span>
+          </div>
+        </div>
+        
+        <div class="streak-info">
+          <div class="streak-message">${streakMessage}</div>
+          <div class="streak-sub">${streakSubMessage}</div>
+        </div>
+        
+        <div class="streak-stats-grid">
+          <div class="streak-stat-item">
+            <div class="streak-stat-value">${best}</div>
+            <div class="streak-stat-label">Longest</div>
+          </div>
+          <div class="streak-stat-item">
+            <div class="streak-stat-value">${monthDays}</div>
+            <div class="streak-stat-label">This Month</div>
+          </div>
+          <div class="streak-stat-item">
+            <div class="streak-stat-value">${goalDays}</div>
+            <div class="streak-stat-label">Goal Days</div>
+          </div>
+        </div>
+        
+        <div class="streak-fire">
+          <span class="streak-fire-icon">${fireIcon}</span>
+          <span class="streak-fire-text">${cur > 0 ? `${cur} Day Streak` : "Start Today"}</span>
+        </div>
+      </div>
+      <div class="streak-strip" id="strkStrip"></div>
+    `;
+  }
+  
+  // 30-day strip
   const map = {};
   userSessions.forEach(s => { map[s.date] = (map[s.date] || 0) + s.duration; });
   const strip = $("strkStrip");
-  strip.innerHTML = "";
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const ds = fmtDate(d);
-    const secs = map[ds] || 0;
-    const cell = document.createElement("div");
-    const lv = secs === 0 ? 0 : secs < 1800 ? 1 : secs < 3600 ? 2 : secs < 7200 ? 3 : 4;
-    cell.className = "ss-cell" + (lv ? ` s${lv}` : "") + (ds === fmtDate(today) ? " today-c" : "");
-    cell.title = `${ds}: ${secs ? fmtHM(secs) : "No session"}`;
-    strip.appendChild(cell);
+  if (strip) {
+    strip.innerHTML = "";
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const ds = fmtDate(d);
+      const secs = map[ds] || 0;
+      const cell = document.createElement("div");
+      const lv = secs === 0 ? 0 : secs < 1800 ? 1 : secs < 3600 ? 2 : secs < 7200 ? 3 : 4;
+      cell.className = "ss-cell" + (lv ? ` s${lv}` : "") + (ds === fmtDate(today) ? " today-c" : "");
+      cell.title = `${ds}: ${secs ? fmtHM(secs) : "No session"}`;
+      strip.appendChild(cell);
+    }
   }
 }
 
