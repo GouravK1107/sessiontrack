@@ -16,6 +16,14 @@ let allSessions = [];
 let activeFilter = "all";
 let searchQuery = "";
 
+// Points per hour for each category
+const POINTS_PER_HOUR = {
+  "Deep Work": 20,
+  "Learning": 15,
+  "Normal Work": 10,
+  "Low Productivity": 5
+};
+
 /* ── UTILS ── */
 const $ = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, "0");
@@ -45,6 +53,23 @@ function parseD(str) {
   } catch {
     return null;
   }
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/* ── CALCULATE POINTS FOR A SESSION ── */
+function getSessionPoints(session) {
+  const hours = session.duration / 3600;
+  const pointsPerHour = POINTS_PER_HOUR[session.category] || 5;
+  return Math.round(hours * pointsPerHour);
 }
 
 /* ── DARK MODE ── */
@@ -192,17 +217,19 @@ const CC = {
   "Low Productivity": "cp-w",
 };
 
-/* ── RENDER SESSION ROW ── */
+/* ── RENDER SESSION ROW (with Points column) ── */
 function mkRow(s, withProj = true) {
+  const points = getSessionPoints(s);
   return `<tr>
-    <td style="color:var(--tm);font-size:.74rem">${s.date}</td>
-    <td style="font-family:var(--m);font-size:.72rem">${s.start}</td>
-    <td style="font-family:var(--m);font-size:.72rem">${s.end}</td>
-    <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}</td>
-    <td><span class="cp ${CC[s.category] || "cp-n"}">${s.category}</span></td>
-    ${withProj ? `<td style="font-size:.74rem">${s.project && s.project !== "—" ? s.project : "—"}</td>` : ""}
-    <td style="font-size:.74rem;max-width:160px;white-space:normal">${s.task}</td>
-    <td><button class="delbtn" onclick="window.delRow('${s.id}')"><i class="fas fa-trash"></i></button></td>
+    <td style="color:var(--tm);font-size:.74rem">${escapeHtml(s.date)}
+    <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}
+    <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}
+    <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}
+    <td style="font-family:var(--m);font-weight:600;color:var(--p)">${points} pts
+    <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span>
+    ${withProj ? `<td style="font-size:.74rem;color:var(--tm)">${escapeHtml(s.project && s.project !== "—" ? s.project : "—")}` : ""}
+    <td style="font-size:.74rem;max-width:160px;white-space:normal;color:var(--tm)">${escapeHtml(s.task)}
+    <td><button class="delbtn" onclick="window.delRow('${s.id}')"><i class="fas fa-trash"></i></button>
   </tr>`;
 }
 
@@ -230,18 +257,19 @@ function getFilteredSessions() {
 function renderSessions() {
   const filtered = getFilteredSessions();
   const totalSeconds = filtered.reduce((a, s) => a + s.duration, 0);
+  const totalPoints = filtered.reduce((sum, s) => sum + getSessionPoints(s), 0);
   
   $("sessCount").textContent = 
-    `${filtered.length} session${filtered.length !== 1 ? "s" : ""} · ${fmtHM(totalSeconds)} total`;
+    `${filtered.length} session${filtered.length !== 1 ? "s" : ""} · ${totalPoints} pts · ${fmtHM(totalSeconds)} total`;
   $("sessSub").textContent = `${allSessions.length} sessions recorded`;
   
   if (filtered.length) {
     $("sessBody").innerHTML = filtered.map(s => mkRow(s, true)).join("");
   } else {
-    $("sessBody").innerHTML = `<td class="etd" colspan="8">
+    $("sessBody").innerHTML = `<tr><td class="etd" colspan="8">
       <i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>
       ${searchQuery || activeFilter !== "all" ? "No matches found" : "No sessions yet — start one from Dashboard!"}
-    </td></tr>`;
+    </tr>`;
   }
 }
 
@@ -249,6 +277,16 @@ function renderSessions() {
 function onSearch(value) {
   searchQuery = value.toLowerCase().trim();
   renderSessions();
+}
+
+/* ── CLEAR SEARCH ── */
+function clearSearch() {
+  const searchInput = $("srchInp");
+  if (searchInput) {
+    searchInput.value = "";
+    searchQuery = "";
+    renderSessions();
+  }
 }
 
 /* ── FILTER HANDLER ── */
@@ -297,16 +335,9 @@ onAuthStateChanged(auth, async (user) => {
 /* ── LOGOUT FUNCTION ── */
 async function logout() {
   try {   
-    // Clear saved timer state
     localStorage.removeItem("activeTimer");
-    
-    // Sign out from Firebase
     await auth.signOut();
-    
-    // Clear any other user data from localStorage
     localStorage.removeItem("st_profile");
-    
-    // Redirect to login page
     window.location.href = "login.html";
   } catch (error) {
     console.error("Error during logout:", error);
@@ -320,6 +351,7 @@ window.toggleSb = toggleSb;
 window.closeSb = closeSb;
 window.clearAll = clearAll;
 window.onSearch = onSearch;
+window.clearSearch = clearSearch;
 window.setFilter = setFilter;
 window.delRow = delRow;
 window.logout = logout;
