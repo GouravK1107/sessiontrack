@@ -14,7 +14,7 @@ let currentUser = null;
 let currentUserId = null;
 let allUsers = [];
 let allSessionsCache = {};
-let lbTab = "all";
+let lbTab = "today"; // Changed default to "today"
 let activeU = null;
 
 // Points per hour for each category
@@ -166,10 +166,11 @@ function calculatePoints(sessions) {
 }
 
 /* ── CALCULATE POINTS FOR TIME PERIOD ── */
-function calculateUserPoints(sessions, period = "all") {
+function calculateUserPoints(sessions, period = "today") {
   if (!sessions.length) return 0;
   
   const now = new Date();
+  const todayStr = fmtDate(now);
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
@@ -178,7 +179,9 @@ function calculateUserPoints(sessions, period = "all") {
   
   let filteredSessions = sessions;
   
-  if (period === "week") {
+  if (period === "today") {
+    filteredSessions = sessions.filter(s => s.date === todayStr);
+  } else if (period === "week") {
     filteredSessions = sessions.filter(s => {
       const sessionDate = parseD(s.date);
       return sessionDate && sessionDate >= startOfWeek;
@@ -189,6 +192,7 @@ function calculateUserPoints(sessions, period = "all") {
       return sessionDate && sessionDate >= startOfMonth;
     });
   }
+  // "all" period doesn't filter
   
   return calculatePoints(filteredSessions);
 }
@@ -250,7 +254,6 @@ function calcStreak(sessions) {
   let streak = 0;
   let checkDate = new Date(today);
   
-  // If no session today, check yesterday's streak (for display)
   if (!sessionMap.has(todayStr)) {
     let tempDate = new Date(today);
     tempDate.setDate(tempDate.getDate() - 1);
@@ -266,7 +269,6 @@ function calcStreak(sessions) {
     return streak;
   }
   
-  // Count consecutive days including today
   while (true) {
     const dateStr = fmtDate(checkDate);
     if (sessionMap.has(dateStr)) {
@@ -341,8 +343,12 @@ async function loadAllUserData() {
     });
   }
   
-  // Sort by points (descending)
-  return userData.sort((a, b) => b.points - a.points);
+  // Sort by points (descending) - only include users with points > 0 for today view
+  let filtered = userData;
+  if (lbTab === "today") {
+    filtered = userData.filter(u => u.points > 0);
+  }
+  return filtered.sort((a, b) => b.points - a.points);
 }
 
 /* ── RENDER LEADERBOARD ── */
@@ -356,7 +362,11 @@ async function renderLeaderboard() {
   const rankColors = ["r1", "r2", "r3"];
   
   if (!userData.length) {
-    $("lbList").innerHTML = '<div class="empty-state">No users found. Invite friends to join!</div>';
+    if (lbTab === "today") {
+      $("lbList").innerHTML = '<div class="empty-state">No one has earned points today. Be the first! 🏆</div>';
+    } else {
+      $("lbList").innerHTML = '<div class="empty-state">No users found. Invite friends to join!</div>';
+    }
     return;
   }
   
@@ -364,6 +374,9 @@ async function renderLeaderboard() {
     const rank = index + 1;
     const rankClass = rank <= 3 ? rankColors[rank - 1] : "rn";
     const percentage = Math.round((user.points / maxPoints) * 100);
+    
+    // Add "today" indicator for daily ranking
+    const pointsLabel = lbTab === "today" ? "pts today" : "pts";
     
     return `
       <div class="lbr${user.isMe ? " me" : ""}${activeU === user.id ? " act" : ""}" onclick="openUp('${user.id}')" style="animation-delay:${index * 0.03}s">
@@ -379,7 +392,7 @@ async function renderLeaderboard() {
           </div>
         </div>
         <div class="lbright">
-          <div class="lbh">${user.points} pts</div>
+          <div class="lbh">${user.points} ${pointsLabel}</div>
           <div class="lbt">${user.streak} day streak</div>
         </div>
         <i class="fas fa-chevron-right lbarw"></i>
@@ -398,7 +411,12 @@ async function openUp(userId) {
   const isMe = userId === currentUserId;
   const userSessions = await loadUserSessions(userId);
   
-  const totalPoints = calculatePoints(userSessions);
+  // Calculate points for different periods
+  const todayPoints = calculateUserPoints(userSessions, "today");
+  const weekPoints = calculateUserPoints(userSessions, "week");
+  const monthPoints = calculateUserPoints(userSessions, "month");
+  const allTimePoints = calculatePoints(userSessions);
+  
   const totalSessions = userSessions.length;
   const streak = calcStreak(userSessions);
   const deepHours = Math.round(userSessions
@@ -424,7 +442,6 @@ async function openUp(userId) {
   if (streak >= 1) chips.push(`<span class="upchip"><i class="fas fa-fire"></i> ${streak}-day streak</span>`);
   if (deepHours > 0) chips.push(`<span class="upchip"><i class="fas fa-brain"></i> ${deepHours}h deep work</span>`);
   if (totalSessions > 0) chips.push(`<span class="upchip"><i class="fas fa-play-circle"></i> ${totalSessions} sessions</span>`);
-  if (totalPoints > 0) chips.push(`<span class="upchip"><i class="fas fa-star"></i> ${totalPoints} points</span>`);
   
   const userColor = getUserColor(user);
   const userInitials = initials(user.name || user.email?.split('@')[0] || "User");
@@ -441,9 +458,22 @@ async function openUp(userId) {
       <div class="upch">${chips.join("")}</div>
     </div>
     <div class="upsb">
-      <div class="ups"><div class="upsv">${totalPoints}</div><div class="upsl">Points</div></div>
-      <div class="ups"><div class="upsv">${totalSessions}</div><div class="upsl">Sessions</div></div>
-      <div class="ups"><div class="upsv">${streak}</div><div class="upsl">Streak</div></div>
+      <div class="ups">
+        <div class="upsv">${todayPoints}</div>
+        <div class="upsl">Today</div>
+      </div>
+      <div class="ups">
+        <div class="upsv">${weekPoints}</div>
+        <div class="upsl">Week</div>
+      </div>
+      <div class="ups">
+        <div class="upsv">${monthPoints}</div>
+        <div class="upsl">Month</div>
+      </div>
+      <div class="ups">
+        <div class="upsv">${allTimePoints}</div>
+        <div class="upsl">All Time</div>
+      </div>
     </div>
   `;
   
