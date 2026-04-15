@@ -352,9 +352,15 @@ async function loadAllUserData() {
 }
 
 /* ── RENDER LEADERBOARD ── */
+/* ── RENDER LEADERBOARD ── */
 async function renderLeaderboard() {
   if (!allUsers.length && currentUserId) {
-    $("lbList").innerHTML = '<div class="loading-state">Loading leaderboard...</div>';
+    $("lbList").innerHTML = `
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Loading leaderboard...</p>
+      </div>
+    `;
   }
   
   const userData = await loadAllUserData();
@@ -363,9 +369,57 @@ async function renderLeaderboard() {
   
   if (!userData.length) {
     if (lbTab === "today") {
-      $("lbList").innerHTML = '<div class="empty-state">No one has earned points today. Be the first! 🏆</div>';
+      $("lbList").innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <i class="fas fa-calendar-day"></i>
+          </div>
+          <h4>No points earned today</h4>
+          <p>Start a focus session and earn your first points to appear on today's leaderboard!</p>
+          <a href="dashboard.html" class="empty-btn">
+            <i class="fas fa-play"></i> Start a Session
+          </a>
+        </div>
+      `;
+    } else if (lbTab === "week") {
+      $("lbList").innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <i class="fas fa-calendar-week"></i>
+          </div>
+          <h4>No weekly points yet</h4>
+          <p>Complete sessions this week to climb the weekly leaderboard!</p>
+          <a href="dashboard.html" class="empty-btn">
+            <i class="fas fa-play"></i> Start a Session
+          </a>
+        </div>
+      `;
+    } else if (lbTab === "month") {
+      $("lbList").innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <h4>No monthly points yet</h4>
+          <p>Build consistency throughout the month to rank higher!</p>
+          <a href="dashboard.html" class="empty-btn">
+            <i class="fas fa-play"></i> Start a Session
+          </a>
+        </div>
+      `;
     } else {
-      $("lbList").innerHTML = '<div class="empty-state">No users found. Invite friends to join!</div>';
+      $("lbList").innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <h4>No users found</h4>
+          <p>Invite your friends to join SessionTrack and compete on the leaderboard!</p>
+          <a href="profile.html" class="empty-btn">
+            <i class="fas fa-share-alt"></i> Invite Friends
+          </a>
+        </div>
+      `;
     }
     return;
   }
@@ -374,13 +428,19 @@ async function renderLeaderboard() {
     const rank = index + 1;
     const rankClass = rank <= 3 ? rankColors[rank - 1] : "rn";
     const percentage = Math.round((user.points / maxPoints) * 100);
-    
-    // Add "today" indicator for daily ranking
     const pointsLabel = lbTab === "today" ? "pts today" : "pts";
+    
+    // Medal emoji for top 3
+    let medalIcon = "";
+    if (rank === 1) medalIcon = "🥇";
+    else if (rank === 2) medalIcon = "🥈";
+    else if (rank === 3) medalIcon = "🥉";
     
     return `
       <div class="lbr${user.isMe ? " me" : ""}${activeU === user.id ? " act" : ""}" onclick="openUp('${user.id}')" style="animation-delay:${index * 0.03}s">
-        <div class="lbrnk ${rankClass}">${rank}</div>
+        <div class="lbrnk ${rankClass}">
+          ${medalIcon ? medalIcon : rank}
+        </div>
         <div class="lbava" style="background:${user.color}">${user.initials}</div>
         <div class="lbi">
           <div class="lbnr">
