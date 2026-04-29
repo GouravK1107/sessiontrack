@@ -1818,3 +1818,51 @@ tbody td {
     font-size: 16px;
   }
 }
+
+/* Repeat Button Styles */
+.dmh-repeat-btn {
+  background: none;
+  border: none;
+  color: var(--tm);
+  font-size: 0.75rem;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.dmh-repeat-btn.active {
+  color: var(--p);
+  background: var(--psoft);
+  opacity: 1;
+}
+
+.dmh-repeat-btn:hover {
+  opacity: 1;
+  color: var(--p);
+  background: var(--psoft);
+  transform: scale(1.05);
+}
+
+.dmh-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.58rem 0.75rem;
+  border-radius: 0.78rem;
+  border: 1.5px solid var(--brd);
+  background: var(--s2);
+  transition: var(--tr);
+  cursor: pointer;
+  user-select: none;
+}
+
+.dmh-item-text {
+  flex: 1;
+  font-size: 0.84rem;
+  color: var(--th);
+}
