@@ -23,9 +23,6 @@ let sessionStartTime = null;
 let elapsedSeconds = 0;
 let isTimerRunning = false;
 
-// Storage keys
-const REPEATING_GOALS_KEY = "st_repeating_goals_cache";
-
 /* ── UTILS ── */
 const $ = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, "0");
@@ -148,22 +145,28 @@ async function addGoalToFirestore(goalText) {
   
   const updatedGoals = [...userGoals, newGoal];
   await saveGoalsToFirestore(updatedGoals);
+  
+  // Also add to today's goals
+  const todayGoals = getTodayGoals();
+  todayGoals.push({ text: goalText.trim(), done: false });
+  saveTodayGoals(todayGoals);
+  
   await refreshDashboard();
   toast(`✓ Goal added: "${goalText}"`, "ok");
 }
 
 // Delete a goal
 async function deleteGoalFromFirestore(goalId) {
+  const goalToRemove = userGoals.find(g => g.id === goalId);
+  if (!goalToRemove) return;
+  
   const updatedGoals = userGoals.filter(g => g.id !== goalId);
   await saveGoalsToFirestore(updatedGoals);
   
-  // Also remove from today's goals if present
+  // Also remove from today's goals
   const todayGoals = getTodayGoals();
-  const goalToRemove = userGoals.find(g => g.id === goalId);
-  if (goalToRemove) {
-    const updatedTodayGoals = todayGoals.filter(g => g.text !== goalToRemove.text);
-    saveTodayGoals(updatedTodayGoals);
-  }
+  const updatedTodayGoals = todayGoals.filter(g => g.text !== goalToRemove.text);
+  saveTodayGoals(updatedTodayGoals);
   
   await refreshDashboard();
   toast(`🗑️ Goal removed`, "warn");
@@ -224,6 +227,14 @@ async function resetDailyGoals() {
   const goalsToAdd = [];
   
   for (const goal of repeatingGoals) {
+    if (!existingTexts.includes(goal.text)) {
+      goalsToAdd.push({ text: goal.text, done: false });
+    }
+  }
+  
+  // Also add all non-repeating goals that are not in today's goals
+  const nonRepeatingGoals = userGoals.filter(g => g.repeating !== true);
+  for (const goal of nonRepeatingGoals) {
     if (!existingTexts.includes(goal.text)) {
       goalsToAdd.push({ text: goal.text, done: false });
     }
@@ -763,14 +774,14 @@ function mkRow(s) {
   const points = getSessionPoints(s);
   return `
     <tr>
-      <td style="color:var(--tm);font-size:.74rem">${escapeHtml(s.date)}
-      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}
-      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}
-      <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}
-      <td style="font-family:var(--m);font-weight:600;color:var(--p)">${points} pts
-      <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span>
-      <td style="font-size:.74rem;max-width:160px;white-space:normal">${escapeHtml(s.task)}
-      <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button>
+      <td style="color:var(--tm);font-size:.74rem">${escapeHtml(s.date)}发展
+      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}发展
+      <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}发展
+      <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}发展
+      <td style="font-family:var(--m);font-weight:600;color:var(--p)">${points} pts发展
+      <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span>发展
+      <td style="font-size:.74rem;max-width:160px;white-space:normal">${escapeHtml(s.task)}发展
+      <td><button class="delbtn" onclick="delS('${s.id}')"><i class="fas fa-trash"></i></button>发展
     </tr>
   `;
 }
@@ -794,7 +805,7 @@ function renderRecentSessions() {
           <td class="etd" colspan="7">
             <i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>
             No sessions yet. Start your first!
-          
+          发展
         </tr>
       `;
     }
@@ -961,6 +972,9 @@ function renderStreakCard() {
 
 /* ── DAILY GOALS (Firestore Synced with Repeat Button) ── */
 async function renderGoals() {
+  // First, ensure today's goals are properly synced with master goals
+  await syncTodayGoalsWithMaster();
+  
   const todayGoals = getTodayGoals();
   const total = todayGoals.length, done = todayGoals.filter(i => i.done).length;
   const badge = $("dmhBadge");
@@ -979,28 +993,25 @@ async function renderGoals() {
     badge.textContent = `0/${total} done`;
   }
   
-  // Render goals list (master goals list from Firestore)
-  if (userGoals.length === 0) {
-    $("dmhList").innerHTML = `<div style="text-align:center;padding:.9rem;color:var(--tm);font-size:.8rem;font-family:var(--m)">No goals yet — type one below 👆</div>`;
+  if (todayGoals.length === 0) {
+    $("dmhList").innerHTML = `<div style="text-align:center;padding:.9rem;color:var(--tm);font-size:.8rem;font-family:var(--m)">No goals for today — add one below 👆</div>`;
     return;
   }
   
   let html = "";
-  for (let idx = 0; idx < userGoals.length; idx++) {
-    const goal = userGoals[idx];
-    const isTodayGoal = todayGoals.some(g => g.text === goal.text);
-    const isCompleted = todayGoals.find(g => g.text === goal.text)?.done || false;
-    const isRepeating = goal.repeating;
+  for (let idx = 0; idx < todayGoals.length; idx++) {
+    const goal = todayGoals[idx];
+    const isRepeating = userGoals.some(g => g.text === goal.text && g.repeating === true);
     const escapedText = escapeHtml(goal.text);
     
     html += `
-      <div class="dmh-item${isCompleted ? " done" : ""}" data-goal-id="${goal.id}">
-        <div class="dmh-cb" onclick="toggleGoalCompletion('${goal.id}', '${escapedText.replace(/'/g, "\\'")}')">${isCompleted ? '<i class="fas fa-check" style="font-size:.6rem"></i>' : ""}</div>
+      <div class="dmh-item${goal.done ? " done" : ""}" data-goal-text="${escapedText}">
+        <div class="dmh-cb" onclick="toggleGoalCompletion(${idx})">${goal.done ? '<i class="fas fa-check" style="font-size:.6rem"></i>' : ""}</div>
         <span class="dmh-item-text">${escapedText}</span>
-        <button class="dmh-repeat-btn ${isRepeating ? "active" : ""}" onclick="toggleRepeatingGoal('${goal.id}')" title="${isRepeating ? 'Disable daily repeat (syncs across devices)' : 'Repeat daily (syncs across devices)'}">
+        <button class="dmh-repeat-btn ${isRepeating ? "active" : ""}" onclick="toggleRepeatingForGoalText('${escapedText.replace(/'/g, "\\'")}')" title="${isRepeating ? 'Disable daily repeat (syncs across devices)' : 'Repeat daily (syncs across devices)'}">
           <i class="fas fa-sync-alt"></i>
         </button>
-        <button class="dmh-del" onclick="deleteGoal('${goal.id}')" title="Remove goal">
+        <button class="dmh-del" onclick="deleteGoalByText('${escapedText.replace(/'/g, "\\'")}')" title="Remove goal">
           <i class="fas fa-trash"></i>
         </button>
       </div>
@@ -1010,24 +1021,35 @@ async function renderGoals() {
   $("dmhList").innerHTML = html;
 }
 
-// Toggle goal completion for today
-async function toggleGoalCompletion(goalId, goalText) {
-  const todayGoals = getTodayGoals();
-  const existingIndex = todayGoals.findIndex(g => g.text === goalText);
+// Sync today's goals with master goals (add any missing master goals)
+async function syncTodayGoalsWithMaster() {
+  let todayGoals = getTodayGoals();
+  const todayGoalTexts = todayGoals.map(g => g.text);
   
-  if (existingIndex !== -1) {
-    // Toggle existing
-    todayGoals[existingIndex].done = !todayGoals[existingIndex].done;
-    saveTodayGoals(todayGoals);
-    
-    if (todayGoals[existingIndex].done) {
-      toast(`✓ Goal completed: "${goalText}"`, "ok");
+  // Add any master goals that are not in today's goals
+  for (const masterGoal of userGoals) {
+    if (!todayGoalTexts.includes(masterGoal.text)) {
+      todayGoals.push({ text: masterGoal.text, done: false });
     }
-  } else {
-    // Add new goal for today
-    todayGoals.push({ text: goalText, done: true });
-    saveTodayGoals(todayGoals);
-    toast(`✓ Goal completed: "${goalText}"`, "ok");
+  }
+  
+  // Remove any goals that are no longer in master goals (deleted goals)
+  const masterTexts = userGoals.map(g => g.text);
+  todayGoals = todayGoals.filter(g => masterTexts.includes(g.text));
+  
+  saveTodayGoals(todayGoals);
+}
+
+// Toggle goal completion for today (by index)
+async function toggleGoalCompletion(goalIndex) {
+  const todayGoals = getTodayGoals();
+  if (goalIndex >= todayGoals.length) return;
+  
+  todayGoals[goalIndex].done = !todayGoals[goalIndex].done;
+  saveTodayGoals(todayGoals);
+  
+  if (todayGoals[goalIndex].done) {
+    toast(`✓ Goal completed: "${todayGoals[goalIndex].text}"`, "ok");
   }
   
   await refreshDashboard();
@@ -1037,6 +1059,36 @@ async function toggleGoalCompletion(goalId, goalText) {
   const allDone = updatedTodayGoals.length > 0 && updatedTodayGoals.every(g => g.done);
   if (allDone) {
     toast("🌟 All daily goals hit! Great work today 🎉", "ok");
+  }
+}
+
+// Toggle repeating for a goal by its text
+async function toggleRepeatingForGoalText(goalText) {
+  const goal = userGoals.find(g => g.text === goalText);
+  if (!goal) {
+    // If goal doesn't exist in master list, add it first
+    await addGoalToFirestore(goalText);
+    const newGoal = userGoals.find(g => g.text === goalText);
+    if (newGoal) {
+      await toggleRepeatingGoal(newGoal.id);
+    }
+    return;
+  }
+  await toggleRepeatingGoal(goal.id);
+}
+
+// Delete goal by its text
+async function deleteGoalByText(goalText) {
+  const goal = userGoals.find(g => g.text === goalText);
+  if (goal) {
+    await deleteGoalFromFirestore(goal.id);
+  } else {
+    // Just remove from today's goals if it's only a today goal
+    const todayGoals = getTodayGoals();
+    const updatedTodayGoals = todayGoals.filter(g => g.text !== goalText);
+    saveTodayGoals(updatedTodayGoals);
+    await refreshDashboard();
+    toast(`🗑️ Goal removed from today`, "warn");
   }
 }
 
@@ -1052,20 +1104,16 @@ async function addGoalItem() {
   updateProjField();
 }
 
-// Delete goal
-async function deleteGoal(goalId) {
-  if (!confirm("Delete this goal permanently?")) return;
-  await deleteGoalFromFirestore(goalId);
-}
-
 /* ── REFRESH DASHBOARD ── */
 async function refreshDashboard() {
   await loadSessions();
   await loadGoalsFromFirestore();
+  await syncTodayGoalsWithMaster();
   renderStats();
   renderRecentSessions();
   await renderGoals();
   renderStreakCard();
+  updateProjField();
 }
 
 /* ── LOGOUT FUNCTION ── */
@@ -1119,7 +1167,8 @@ window.closeSb = closeSb;
 window.clearAll = clearAll;
 window.addGoalItem = addGoalItem;
 window.toggleGoalCompletion = toggleGoalCompletion;
-window.deleteGoal = deleteGoal;
+window.deleteGoalByText = deleteGoalByText;
+window.toggleRepeatingForGoalText = toggleRepeatingForGoalText;
 window.toggleRepeatingGoal = toggleRepeatingGoal;
 window.logout = logout;
 window.updateTimerDisplay = updateTimerDisplay;
