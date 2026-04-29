@@ -53,6 +53,7 @@
       <!-- TIMER + HISTORY -->
       <div class="tg">
         <div class="card tc2">
+          <!-- timer content stays the same -->
           <div class="tsr">
             <div><div class="ct">Work Session</div><div class="cs">Track your focus time</div></div>
             <div class="stxt"><span class="sdot idle" id="sDot"></span><span id="sTxtEl">Idle</span></div>
@@ -64,14 +65,15 @@
               <div><div class="tv" id="tDt">--</div><div class="tl">Date</div></div>
             </div>
           </div>
+          <!-- rest of timer content -->
           <div class="tform">
             <div class="f2">
               <div class="ff"><label>Category</label>
                 <select id="catSel">
-                  <option value="Deep Work">&#x1F9E0; Deep Work</option>
-                  <option value="Learning">&#x1F4DA; Learning</option>
-                  <option value="Normal Work">&#x1F4BC; Normal Work</option>
-                  <option value="Low Productivity">&#x1F634; Low Productivity</option>
+                  <option value="Deep Work">🧠 Deep Work</option>
+                  <option value="Learning">📚 Learning</option>
+                  <option value="Normal Work">💼 Normal Work</option>
+                  <option value="Low Productivity">😴 Low Productivity</option>
                 </select>
               </div>
               <div class="ff"><label>Project</label><div id="projWrap"><input id="projInp" placeholder="e.g. Todo API"></div></div>
@@ -83,17 +85,40 @@
             <button class="bstop" id="btnStop" onclick="stopSess()" disabled><i class="fas fa-stop"></i>Stop Session</button>
           </div>
         </div>
+        
+        <!-- SESSION HISTORY - IMPROVED VERSION -->
         <div class="card hc">
           <div class="ch">
-            <div><div class="ct">Session History</div><div class="cs" id="histCnt">0 sessions</div></div>
+            <div>
+              <div class="ct">Session History</div>
+              <div class="cs" id="histCnt">0 sessions</div>
+            </div>
             <button class="cbtn" onclick="clearAll()">Clear all</button>
           </div>
-          <div style="padding:0"><div class="htw tw">
+          <div class="htw tw">
             <table>
-              <thead><tr><th>Date</th><th>Start</th><th>End</th><th>Duration</th><th>Points</th><th>Category</th><th>Task</th><th></th></tr></thead>
-              <tbody id="histBody"><tr><td class="etd" colspan="7"><i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>No sessions yet.</td></tr></tbody>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Duration</th>
+                  <th>Points</th>
+                  <th>Category</th>
+                  <th>Task</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="histBody">
+                <tr>
+                  <td class="etd" colspan="8">
+                    <i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>
+                    No sessions yet. Start your first!
+                  </td>
+                </tr>
+              </tbody>
             </table>
-          </div></div>
+          </div>
         </div>
       </div>
 
