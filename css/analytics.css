@@ -133,7 +133,7 @@ textarea {
 .sb {
   width: var(--sbw);
   background: var(--s);
-  border-right: 1px solid var(--brd);
+  border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -161,7 +161,7 @@ textarea {
 }
 .sb-top {
   padding: 1.1rem 1.3rem;
-  border-bottom: 1px solid var(--brd);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -273,7 +273,7 @@ textarea {
 }
 .sb-foot {
   padding: 0.7rem 0.6rem;
-  border-top: 1px solid var(--brd);
+  border-top: 1px solid var(--glass-border);
   flex-shrink: 0;
 }
 .sb-user {
@@ -314,7 +314,7 @@ textarea {
 .hdr {
   height: var(--hh);
   background: var(--s);
-  border-bottom: 1px solid var(--brd);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   padding: 0 1.4rem;
