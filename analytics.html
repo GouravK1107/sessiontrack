@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>Analytics · SessionTrack</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,43 +14,124 @@
 <body>
 <div class="app">
   <div class="sbo" id="sbo" onclick="closeSb()"></div>
-<nav class="sb" id="sb">
-  <div class="sb-top"><div class="sb-badge">ST</div><div><div class="sb-bn">SessionTrack</div><div class="sb-bt">focus analytics</div></div></div>
-  <div class="sb-nav">
-    <div class="sb-sec">Main</div>
-    <a class="ni" href="dashboard.html"><i class="fas fa-th-large"></i>Dashboard</a>
-<a class="ni" href="sessions.html"><i class="fas fa-stopwatch"></i>Sessions</a>
-<a class="ni on" href="analytics.html"><i class="fas fa-chart-bar"></i>Analytics</a>
-<div class="sb-sec">Community</div>
-<a class="ni" href="leaderboard.html"><i class="fas fa-trophy"></i>Leaderboard</a>
+  <nav class="sb" id="sb">
+    <div class="sb-top">
+      <div class="sb-badge">ST</div>
+      <div>
+        <div class="sb-bn">SessionTrack</div>
+        <div class="sb-bt">focus analytics</div>
+      </div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-sec">Main</div>
+      <a class="ni" href="dashboard.html"><i class="fas fa-th-large"></i>Dashboard</a>
+      <a class="ni" href="sessions.html"><i class="fas fa-stopwatch"></i>Sessions</a>
+      <a class="ni on" href="analytics.html"><i class="fas fa-chart-bar"></i>Analytics</a>
+      <div class="sb-sec">Community</div>
+      <a class="ni" href="leaderboard.html"><i class="fas fa-trophy"></i>Leaderboard</a>
+      <div class="sb-sec">Account</div>
+      <a class="ni" href="dashboard.html"><i class="fas fa-home"></i>Home</a>
+      <button class="ni logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i>Logout</button>
+    </div>
+    <div class="sb-foot">
+      <a class="sb-user" href="profile.html">
+        <div class="sb-av" id="sbAva">GK</div>
+        <div>
+          <div class="sb-un" id="sbName">Gourav K</div>
+          <div class="sb-ur" id="sbRole">BCA · Backend Dev</div>
+        </div>
+        <i class="fas fa-external-link-alt" style="font-size:.6rem;color:var(--tm);margin-left:auto"></i>
+      </a>
+    </div>
+  </nav>
 
-    <div class="sb-sec">Account</div>
-    <a class="ni" href="dashboard.html"><i class="fas fa-home"></i>Home</a>
-    <button class="ni logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i>Logout</button>
-  </div>
-  <div class="sb-foot"><a class="sb-user" href="profile.html"><div class="sb-av" id="sbAva">GK</div><div><div class="sb-un" id="sbName">Gourav K</div><div class="sb-ur" id="sbRole">BCA · Backend Dev</div></div><i class="fas fa-external-link-alt" style="font-size:.6rem;color:var(--tm);margin-left:auto"></i></a></div>
-</nav>
   <div class="main">
     <header class="hdr">
-  <button class="hbtn" onclick="toggleSb()"><i class="fas fa-bars"></i></button>
-  <div class="hg"><h2 id="greetTxt">Analytics 📊</h2><p id="greetSub">Your focus patterns and productivity insights</p></div>
-  
-  <div class="ha">
-    <div class="hdate" id="hdrDate"></div>
-    <button class="dbtn" onclick="toggleDark()"><i class="fas fa-moon" id="dIco"></i><span id="dLbl">Dark</span></button>
-    <a href="profile.html" class="ibtn" title="Profile"><i class="fas fa-user"></i></a>
-  </div>
-</header>
+      <button class="hbtn" onclick="toggleSb()"><i class="fas fa-bars"></i></button>
+      <div class="hg">
+        <h2 id="greetTxt">Analytics 📊</h2>
+        <p id="greetSub">Your focus patterns and productivity insights</p>
+      </div>
+      <div class="ha">
+        <div class="hdate" id="hdrDate"></div>
+        <button class="dbtn" onclick="toggleDark()"><i class="fas fa-moon" id="dIco"></i><span id="dLbl">Dark</span></button>
+        <a href="profile.html" class="ibtn" title="Profile"><i class="fas fa-user"></i></a>
+      </div>
+    </header>
+
     <div class="pb">
-      <!-- STAT ROW -->
-      <div class="sr">
-        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-clock"></i></div></div><div class="sv2" id="aH">0m</div><div class="sl">Total today</div></div>
-        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-play-circle"></i></div></div><div class="sv2" id="aS">0</div><div class="sl">Sessions today</div></div>
-        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-brain"></i></div></div><div class="sv2" id="aD">0m</div><div class="sl">Deep work</div></div>
-        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-fire"></i></div></div><div class="sv2" id="aSt">0</div><div class="sl">Day streak</div></div>
+      <!-- HERO SUMMARY SECTION -->
+      <div class="hero-summary">
+        <div class="hero-content">
+          <div class="hero-tag">Focus Intelligence</div>
+          <div class="hero-title" id="heroTitle">Unlock Your Productivity</div>
+          <div class="hero-subtitle" id="heroSubtitle">Start a session to unlock your focus insights.</div>
+          <div class="hero-pills">
+            <div class="hero-pill" id="heroWeeklyPill">📅 This week · 0h</div>
+            <div class="hero-pill" id="heroBestPill">🏆 Best category · —</div>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-value" id="heroTotalSessions">0</div>
+            <div class="hero-stat-label">Total sessions</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value" id="heroTotalHours">0</div>
+            <div class="hero-stat-label">Total hours</div>
+          </div>
+        </div>
       </div>
 
-      <!-- PRODUCTIVITY SCORE -->
+      <!-- STAT ROW -->
+      <div class="sr">
+        <div class="sc">
+          <div class="st">
+            <div class="sico"><i class="fas fa-clock"></i></div>
+            <span class="strd tup" id="aHTrend">—</span>
+          </div>
+          <div class="sv2" id="aH">0m</div>
+          <div class="sl">Total today</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="aHProgress" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="sc">
+          <div class="st">
+            <div class="sico"><i class="fas fa-play-circle"></i></div>
+            <span class="strd tneu" id="aSTrend">—</span>
+          </div>
+          <div class="sv2" id="aS">0</div>
+          <div class="sl">Sessions today</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="aSProgress" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="sc">
+          <div class="st">
+            <div class="sico"><i class="fas fa-brain"></i></div>
+            <span class="strd tup" id="aDTrend">—</span>
+          </div>
+          <div class="sv2" id="aD">0m</div>
+          <div class="sl">Deep work</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="aDProgress" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="sc">
+          <div class="st">
+            <div class="sico"><i class="fas fa-fire"></i></div>
+            <span class="strd tup" id="aStTrend">—</span>
+          </div>
+          <div class="sv2" id="aSt">0</div>
+          <div class="sl">Day streak</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="aStProgress" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRODUCTIVITY SCORE CARD -->
       <div class="card sc-card">
         <div class="sc-top">
           <div class="sc-left">
@@ -59,17 +140,46 @@
                 <circle cx="60" cy="60" r="52" fill="none" stroke="var(--s2)" stroke-width="10"/>
                 <circle cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 327" id="scArc" style="transition:stroke-dasharray 1.4s cubic-bezier(.34,1.1,.64,1);transform:rotate(-90deg);transform-origin:50% 50%"/>
               </svg>
-              <div class="sc-ring-inner"><div class="sc-pts" id="scPts">0</div><div class="sc-pts-lbl">pts today</div></div>
+              <div class="sc-ring-inner">
+                <div class="sc-pts" id="scPts">0</div>
+                <div class="sc-pts-lbl">pts today</div>
+              </div>
             </div>
-            <div class="sc-rank-badge" id="scBadge"><span id="scBadgeIcon">💤</span><span id="scBadgeName">No sessions</span></div>
+            <div class="sc-rank-badge" id="scBadge">
+              <span id="scBadgeIcon">💤</span>
+              <span id="scBadgeName">No sessions</span>
+            </div>
           </div>
           <div class="sc-right">
-            <div><div class="ct">Productivity Score</div><div class="cs" id="scSub">Earn points by logging sessions</div></div>
+            <div>
+              <div class="ct">Productivity Score</div>
+              <div class="cs" id="scSub">Earn points by logging sessions</div>
+            </div>
             <div class="sc-rules">
-              <div class="sc-rule"><span class="sc-rule-dot" style="background:var(--p)"></span><span class="sc-rule-lbl">Deep Work</span><span class="sc-rule-rate">20 pts/hr</span><span class="sc-rule-earned" id="scD">—</span></div>
-              <div class="sc-rule"><span class="sc-rule-dot" style="background:var(--grn)"></span><span class="sc-rule-lbl">Learning</span><span class="sc-rule-rate">15 pts/hr</span><span class="sc-rule-earned" id="scL">—</span></div>
-              <div class="sc-rule"><span class="sc-rule-dot" style="background:var(--yel)"></span><span class="sc-rule-lbl">Normal Work</span><span class="sc-rule-rate">10 pts/hr</span><span class="sc-rule-earned" id="scN">—</span></div>
-              <div class="sc-rule"><span class="sc-rule-dot" style="background:var(--pink)"></span><span class="sc-rule-lbl">Low Productivity</span><span class="sc-rule-rate">5 pts/hr</span><span class="sc-rule-earned" id="scP">—</span></div>
+              <div class="sc-rule">
+                <span class="sc-rule-dot" style="background:var(--p)"></span>
+                <span class="sc-rule-lbl">Deep Work</span>
+                <span class="sc-rule-rate">20 pts/hr</span>
+                <span class="sc-rule-earned" id="scD">—</span>
+              </div>
+              <div class="sc-rule">
+                <span class="sc-rule-dot" style="background:var(--grn)"></span>
+                <span class="sc-rule-lbl">Learning</span>
+                <span class="sc-rule-rate">15 pts/hr</span>
+                <span class="sc-rule-earned" id="scL">—</span>
+              </div>
+              <div class="sc-rule">
+                <span class="sc-rule-dot" style="background:var(--yel)"></span>
+                <span class="sc-rule-lbl">Normal Work</span>
+                <span class="sc-rule-rate">10 pts/hr</span>
+                <span class="sc-rule-earned" id="scN">—</span>
+              </div>
+              <div class="sc-rule">
+                <span class="sc-rule-dot" style="background:var(--pink)"></span>
+                <span class="sc-rule-lbl">Low Productivity</span>
+                <span class="sc-rule-rate">5 pts/hr</span>
+                <span class="sc-rule-earned" id="scP">—</span>
+              </div>
             </div>
             <div class="sc-next-row" id="scNext">Start a session to earn your first points!</div>
           </div>
@@ -77,29 +187,73 @@
         <div class="sc-ladder" id="scLadder"></div>
       </div>
 
-      <!-- INSIGHTS ROW: streak · peak day · personal best -->
+      <!-- FILTER BAR -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label><i class="fas fa-calendar-alt"></i> Range</label>
+          <div class="filter-buttons">
+            <button class="filter-btn active" data-range="today">Today</button>
+            <button class="filter-btn" data-range="week">7 Days</button>
+            <button class="filter-btn" data-range="month">30 Days</button>
+            <button class="filter-btn" data-range="all">All Time</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label><i class="fas fa-tag"></i> Category</label>
+          <select id="categoryFilter" class="filter-select">
+            <option value="all">All Categories</option>
+            <option value="Deep Work">🧠 Deep Work</option>
+            <option value="Learning">📚 Learning</option>
+            <option value="Normal Work">💼 Normal Work</option>
+            <option value="Low Productivity">😴 Low Productivity</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label><i class="fas fa-folder"></i> Project</label>
+          <select id="projectFilter" class="filter-select">
+            <option value="all">All Projects</option>
+          </select>
+        </div>
+        <button class="filter-reset" onclick="resetFilters()"><i class="fas fa-undo-alt"></i> Reset</button>
+      </div>
+
+      <!-- INSIGHTS ROW -->
       <div class="ins-row">
-        <div class="ins-card card" style="padding:1rem 1.1rem">
+        <div class="ins-card card">
           <div class="ins-hd"><i class="fas fa-fire" style="color:var(--org)"></i><strong id="insA">0-day streak</strong></div>
           <p id="insAp">Start your first session to begin a streak!</p>
         </div>
-        <div class="ins-card card" style="padding:1rem 1.1rem">
+        <div class="ins-card card">
           <div class="ins-hd"><i class="fas fa-bolt" style="color:var(--p)"></i><strong id="insB">Peak day</strong></div>
           <p id="insBp">Log sessions to discover your peak day.</p>
         </div>
-        <div class="ins-card hi card" style="padding:1rem 1.1rem">
-          <div class="ins-hd"><i class="fas fa-trophy" style="color:var(--pink)"></i><strong id="insC">Personal best</strong></div>
+        <div class="ins-card card">
+          <div class="ins-hd"><i class="fas fa-trophy" style="color:var(--yel)"></i><strong id="insC">Personal best</strong></div>
           <p id="insCp">Your longest single-day focus will appear here.</p>
+        </div>
+        <div class="ins-card card">
+          <div class="ins-hd"><i class="fas fa-hourglass-half" style="color:var(--grn)"></i><strong id="insD">Best focus hour</strong></div>
+          <p id="insDp">Not enough data yet.</p>
+        </div>
+        <div class="ins-card card">
+          <div class="ins-hd"><i class="fas fa-chart-line" style="color:var(--p)"></i><strong id="insE">Avg session length</strong></div>
+          <p id="insEp">—</p>
+        </div>
+        <div class="ins-card card">
+          <div class="ins-hd"><i class="fas fa-percent" style="color:var(--org)"></i><strong id="insF">Deep work ratio</strong></div>
+          <p id="insFp">—</p>
         </div>
       </div>
 
-      <!-- CHART + CALENDAR -->
+      <!-- CHART + CALENDAR GRID -->
       <div class="an-grid">
-
-        <!-- CHART CARD: Week / Month tabs -->
+        <!-- CHART CARD -->
         <div class="card chart-fill">
           <div class="ch">
-            <div><div class="ct" id="chartTitle">Weekly Focus Hours</div><div class="cs" id="chartSub">This week · 0h total</div></div>
+            <div>
+              <div class="ct" id="chartTitle">Weekly Focus Hours</div>
+              <div class="cs" id="chartSub">This week · 0h total</div>
+            </div>
             <div class="chart-tabs">
               <button class="ctab on" onclick="switchChart(this,'week')">Week</button>
               <button class="ctab" onclick="switchChart(this,'month')">Month</button>
@@ -122,10 +276,13 @@
           </div>
         </div>
 
-        <!-- CALENDAR (smaller) -->
+        <!-- CALENDAR -->
         <div class="card cal-card">
           <div class="ch">
-            <div><div class="ct">Focus Calendar</div><div class="cs" id="calSub">Session tracker</div></div>
+            <div>
+              <div class="ct">Focus Calendar</div>
+              <div class="cs" id="calSub">Session tracker</div>
+            </div>
             <div style="display:flex;align-items:center;gap:.32rem">
               <button class="calnb" onclick="calPrev()"><i class="fas fa-chevron-left"></i></button>
               <span class="calmn" id="calMon"></span>
@@ -133,13 +290,29 @@
             </div>
           </div>
           <div class="calbody">
-            <div class="caldow"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+            <div class="cal-heatmap-legend">
+              <span>Less</span>
+              <div class="legend-squares">
+                <div class="legend-square l1"></div>
+                <div class="legend-square l2"></div>
+                <div class="legend-square l3"></div>
+                <div class="legend-square l4"></div>
+              </div>
+              <span>More</span>
+            </div>
+            <div class="caldow">
+              <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+            </div>
             <div class="calgrid" id="calGrid"></div>
             <div class="calfoot">
               <div class="calfs"><span id="calSC">0</span>sess</div>
               <div style="display:flex;align-items:center;gap:.4rem;font-size:.55rem;color:var(--tm);font-family:var(--m)">
-                <span style="display:flex;align-items:center;gap:.18rem"><span style="width:7px;height:7px;border-radius:2px;background:rgba(33,82,224,.25);display:inline-block"></span>focus</span>
-                <span style="display:flex;align-items:center;gap:.18rem"><span style="width:7px;height:7px;border-radius:2px;border:1.5px solid var(--org);display:inline-block"></span>streak</span>
+                <span style="display:flex;align-items:center;gap:.18rem">
+                  <span style="width:7px;height:7px;border-radius:2px;background:rgba(33,82,224,.25);display:inline-block"></span>focus
+                </span>
+                <span style="display:flex;align-items:center;gap:.18rem">
+                  <span style="width:7px;height:7px;border-radius:2px;border:1.5px solid var(--org);display:inline-block"></span>streak
+                </span>
               </div>
               <div class="calfs" style="text-align:right"><span id="calHC">0h</span></div>
             </div>

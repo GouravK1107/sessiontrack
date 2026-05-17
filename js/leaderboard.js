@@ -14,8 +14,9 @@ let currentUser = null;
 let currentUserId = null;
 let allUsers = [];
 let allSessionsCache = {};
-let lbTab = "today"; // Changed default to "today"
+let lbTab = "today";
 let activeU = null;
+let currentUserRank = 0;
 
 // Points per hour for each category
 const POINTS_PER_HOUR = {
@@ -26,7 +27,7 @@ const POINTS_PER_HOUR = {
 };
 
 /* ── UTILS ── */
-const $ = (id) => document.getElementById(id);
+const getEl = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, "0");
 
 function fmtDate(d) {
@@ -56,12 +57,22 @@ function parseD(str) {
   }
 }
 
+function escapeHtml(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /* ── DARK MODE ── */
 const getDk = () => localStorage.getItem("st_dark") === "1";
 const putDk = (v) => localStorage.setItem("st_dark", v ? "1" : "0");
 function applyDk(on) {
   document.documentElement.setAttribute("data-theme", on ? "dark" : "light");
-  const i = $("dIco"), l = $("dLbl");
+  const i = getEl("dIco"), l = getEl("dLbl");
   if (i) i.className = on ? "fas fa-sun" : "fas fa-moon";
   if (l) l.textContent = on ? "Light" : "Dark";
 }
@@ -72,9 +83,8 @@ function toggleDark() {
 }
 applyDk(getDk());
 
-/* ── TOAST ── */
 function toast(msg, type = "info") {
-  const t = $("toast");
+  const t = getEl("toast");
   t.innerHTML = `<i class="fas fa-${type === "ok" ? "check-circle" : type === "warn" ? "exclamation-triangle" : "info-circle"}"></i> ${msg}`;
   t.className = `tst show ${type}`;
   clearTimeout(t._t);
@@ -83,43 +93,46 @@ function toast(msg, type = "info") {
   }, 3200);
 }
 
-/* ── SIDEBAR ── */
 function toggleSb() {
-  $("sb").classList.toggle("open");
-  $("sbo").classList.toggle("on");
+  const sb = getEl("sb");
+  const sbo = getEl("sbo");
+  if (sb) sb.classList.toggle("open");
+  if (sbo) sbo.classList.toggle("on");
 }
 function closeSb() {
-  $("sb").classList.remove("open");
-  $("sbo").classList.remove("on");
+  const sb = getEl("sb");
+  const sbo = getEl("sbo");
+  if (sb) sb.classList.remove("open");
+  if (sbo) sbo.classList.remove("on");
 }
 
-/* ── LOAD CURRENT USER PROFILE ── */
 async function loadCurrentUserProfile() {
   if (!currentUser) return;
-  
   try {
     const userRef = doc(db, "users", currentUser.uid);
     const userSnap = await getDoc(userRef);
-    
     if (userSnap.exists()) {
       const data = userSnap.data();
       const name = data.name || currentUser.email?.split('@')[0] || "User";
       const role = data.role || "SessionTrack member";
       const color = data.color || "linear-gradient(135deg,#2152e0,#b84a8c)";
       const avatarInitials = initials(name);
-      
-      if ($("sbAva")) {
-        $("sbAva").textContent = avatarInitials;
-        $("sbAva").style.background = color;
+      const sbAva = getEl("sbAva");
+      if (sbAva) {
+        sbAva.textContent = avatarInitials;
+        sbAva.style.background = color;
       }
-      if ($("sbName")) $("sbName").textContent = name;
-      if ($("sbRole")) $("sbRole").textContent = role;
-      
+      const sbName = getEl("sbName");
+      if (sbName) sbName.textContent = name;
+      const sbRole = getEl("sbRole");
+      if (sbRole) sbRole.textContent = role;
       initHdr(name);
     } else {
       const defaultName = currentUser.email?.split('@')[0] || "User";
-      if ($("sbAva")) $("sbAva").textContent = initials(defaultName);
-      if ($("sbName")) $("sbName").textContent = defaultName;
+      const sbAva = getEl("sbAva");
+      if (sbAva) sbAva.textContent = initials(defaultName);
+      const sbName = getEl("sbName");
+      if (sbName) sbName.textContent = defaultName;
       initHdr(defaultName);
     }
   } catch (error) {
@@ -137,7 +150,7 @@ function initials(name) {
 
 function initHdr(name = "User") {
   const n = new Date();
-  const hd = $("hdrDate");
+  const hd = getEl("hdrDate");
   if (hd) {
     hd.textContent = n.toLocaleDateString("en-IN", {
       weekday: "short",
@@ -148,13 +161,13 @@ function initHdr(name = "User") {
   }
   const h = n.getHours();
   const firstName = name.split(" ")[0];
-  const gt = $("greetTxt");
-  if (gt) {
-    gt.textContent = `${h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"}, ${firstName} 👋`;
+  const greetTime = `${h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"}, ${firstName}`;
+  const sub = getEl("greetSub");
+  if (sub) {
+    sub.textContent = `${greetTime} · See how you stack up against other users`;
   }
 }
 
-/* ── CALCULATE POINTS FOR SESSIONS ── */
 function calculatePoints(sessions) {
   let totalPoints = 0;
   sessions.forEach(session => {
@@ -165,20 +178,15 @@ function calculatePoints(sessions) {
   return totalPoints;
 }
 
-/* ── CALCULATE POINTS FOR TIME PERIOD ── */
 function calculateUserPoints(sessions, period = "today") {
   if (!sessions.length) return 0;
-  
   const now = new Date();
   const todayStr = fmtDate(now);
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
-  
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  
   let filteredSessions = sessions;
-  
   if (period === "today") {
     filteredSessions = sessions.filter(s => s.date === todayStr);
   } else if (period === "week") {
@@ -192,28 +200,18 @@ function calculateUserPoints(sessions, period = "today") {
       return sessionDate && sessionDate >= startOfMonth;
     });
   }
-  // "all" period doesn't filter
-  
   return calculatePoints(filteredSessions);
 }
 
-/* ── LOAD SESSIONS FOR A USER (with caching) ── */
 async function loadUserSessions(userId) {
   if (allSessionsCache[userId]) {
     return allSessionsCache[userId];
   }
-  
   try {
     const sessionsRef = collection(db, "sessions");
-    const q = query(
-      sessionsRef,
-      where("userId", "==", userId)
-    );
+    const q = query(sessionsRef, where("userId", "==", userId));
     const snapshot = await getDocs(q);
-    const sessions = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     allSessionsCache[userId] = sessions;
     return sessions;
   } catch (error) {
@@ -222,15 +220,11 @@ async function loadUserSessions(userId) {
   }
 }
 
-/* ── LOAD ALL USERS FROM FIREBASE ── */
 async function loadAllUsers() {
   try {
     const usersRef = collection(db, "users");
     const snapshot = await getDocs(usersRef);
-    allUsers = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return allUsers;
   } catch (error) {
     console.error("Error loading users:", error);
@@ -238,22 +232,15 @@ async function loadAllUsers() {
   }
 }
 
-/* ── CALCULATE STREAK ── */
 function calcStreak(sessions) {
   if (!sessions.length) return 0;
-  
   const sessionMap = new Map();
-  sessions.forEach(s => {
-    sessionMap.set(s.date, true);
-  });
-  
+  sessions.forEach(s => { sessionMap.set(s.date, true); });
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = fmtDate(today);
-  
   let streak = 0;
   let checkDate = new Date(today);
-  
   if (!sessionMap.has(todayStr)) {
     let tempDate = new Date(today);
     tempDate.setDate(tempDate.getDate() - 1);
@@ -262,27 +249,20 @@ function calcStreak(sessions) {
       if (sessionMap.has(dateStr)) {
         streak++;
         tempDate.setDate(tempDate.getDate() - 1);
-      } else {
-        break;
-      }
+      } else break;
     }
     return streak;
   }
-  
   while (true) {
     const dateStr = fmtDate(checkDate);
     if (sessionMap.has(dateStr)) {
       streak++;
       checkDate.setDate(checkDate.getDate() - 1);
-    } else {
-      break;
-    }
+    } else break;
   }
-  
   return streak;
 }
 
-/* ── GET MOST RECENT PROJECT ── */
 function getRecentProject(sessions) {
   if (!sessions.length) return "No sessions yet";
   const sorted = [...sessions].sort((a, b) => (b.ts || 0) - (a.ts || 0));
@@ -293,7 +273,6 @@ function getRecentProject(sessions) {
   return "No project";
 }
 
-/* ── CATEGORY CLASSES ── */
 const CC = {
   "Deep Work": "cp-d",
   Learning: "cp-l",
@@ -301,7 +280,6 @@ const CC = {
   "Low Productivity": "cp-w",
 };
 
-/* ── GET RANDOM COLOR FOR USERS WITHOUT COLOR ── */
 const defaultColors = [
   "linear-gradient(135deg,#2152e0,#b84a8c)",
   "linear-gradient(135deg,#20b08a,#2bd4a0)",
@@ -316,18 +294,15 @@ function getUserColor(user) {
   return user.color || defaultColors[Math.abs((user.id?.charCodeAt(0) || 0)) % defaultColors.length];
 }
 
-/* ── LOAD ALL USER DATA WITH POINTS ── */
 async function loadAllUserData() {
   const users = await loadAllUsers();
   const userData = [];
-  
   for (const user of users) {
     const sessions = await loadUserSessions(user.id);
     const points = calculateUserPoints(sessions, lbTab);
     const streak = calcStreak(sessions);
     const totalSessions = sessions.length;
     const recentProject = getRecentProject(sessions);
-    
     userData.push({
       id: user.id,
       name: user.name || user.email?.split('@')[0] || "User",
@@ -342,8 +317,6 @@ async function loadAllUserData() {
       sessions: sessions
     });
   }
-  
-  // Sort by points (descending) - only include users with points > 0 for today view
   let filtered = userData;
   if (lbTab === "today") {
     filtered = userData.filter(u => u.points > 0);
@@ -351,105 +324,78 @@ async function loadAllUserData() {
   return filtered.sort((a, b) => b.points - a.points);
 }
 
-/* ── RENDER LEADERBOARD ── */
-/* ── RENDER LEADERBOARD ── */
+function getRankMeta(rank) {
+  if (rank === 1) return { class: "r1", medal: "🥇", glow: true };
+  if (rank === 2) return { class: "r2", medal: "🥈", glow: false };
+  if (rank === 3) return { class: "r3", medal: "🥉", glow: false };
+  return { class: "rn", medal: rank, glow: false };
+}
+
 async function renderLeaderboard() {
+  const lbList = getEl("lbList");
+  if (!lbList) return;
+  
   if (!allUsers.length && currentUserId) {
-    $("lbList").innerHTML = `
-      <div class="loading-state">
-        <div class="loading-spinner"></div>
-        <p>Loading leaderboard...</p>
-      </div>
-    `;
+    lbList.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div><p>Loading leaderboard...</p></div>`;
   }
   
   const userData = await loadAllUserData();
   const maxPoints = Math.max(...userData.map(u => u.points), 1);
-  const rankColors = ["r1", "r2", "r3"];
+  const periodLabels = { today: "pts today", week: "pts this week", month: "pts this month", all: "total pts" };
+  const pointsLabel = periodLabels[lbTab] || "pts";
   
   if (!userData.length) {
-    if (lbTab === "today") {
-      $("lbList").innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <i class="fas fa-calendar-day"></i>
-          </div>
-          <h4>No points earned today</h4>
-          <p>Start a focus session and earn your first points to appear on today's leaderboard!</p>
-          <a href="dashboard.html" class="empty-btn">
-            <i class="fas fa-play"></i> Start a Session
-          </a>
-        </div>
-      `;
-    } else if (lbTab === "week") {
-      $("lbList").innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <i class="fas fa-calendar-week"></i>
-          </div>
-          <h4>No weekly points yet</h4>
-          <p>Complete sessions this week to climb the weekly leaderboard!</p>
-          <a href="dashboard.html" class="empty-btn">
-            <i class="fas fa-play"></i> Start a Session
-          </a>
-        </div>
-      `;
-    } else if (lbTab === "month") {
-      $("lbList").innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <i class="fas fa-calendar-alt"></i>
-          </div>
-          <h4>No monthly points yet</h4>
-          <p>Build consistency throughout the month to rank higher!</p>
-          <a href="dashboard.html" class="empty-btn">
-            <i class="fas fa-play"></i> Start a Session
-          </a>
-        </div>
-      `;
-    } else {
-      $("lbList").innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <i class="fas fa-trophy"></i>
-          </div>
-          <h4>No users found</h4>
-          <p>Invite your friends to join SessionTrack and compete on the leaderboard!</p>
-          <a href="profile.html" class="empty-btn">
-            <i class="fas fa-share-alt"></i> Invite Friends
-          </a>
-        </div>
-      `;
-    }
+    const emptyMessages = {
+      today: "No points earned today",
+      week: "No weekly points yet",
+      month: "No monthly points yet",
+      all: "No users found"
+    };
+    lbList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon"><i class="fas fa-calendar-${lbTab === "today" ? "day" : lbTab === "week" ? "week" : lbTab === "month" ? "alt" : "trophy"}"></i></div>
+        <h4>${emptyMessages[lbTab] || "No data available"}</h4>
+        <p>${lbTab === "all" ? "Invite your friends to join SessionTrack!" : "Complete sessions to climb the leaderboard!"}</p>
+        <a href="dashboard.html" class="empty-btn"><i class="fas fa-play"></i> Start a Session</a>
+      </div>
+    `;
     return;
   }
   
-  $("lbList").innerHTML = userData.map((user, index) => {
+  lbList.innerHTML = userData.map((user, index) => {
     const rank = index + 1;
-    const rankClass = rank <= 3 ? rankColors[rank - 1] : "rn";
+    const rankMeta = getRankMeta(rank);
     const percentage = Math.round((user.points / maxPoints) * 100);
-    const pointsLabel = lbTab === "today" ? "pts today" : "pts";
+    const isTopOne = rank === 1;
     
-    // Medal emoji for top 3
-    let medalIcon = "";
-    if (rank === 1) medalIcon = "🥇";
-    else if (rank === 2) medalIcon = "🥈";
-    else if (rank === 3) medalIcon = "🥉";
+    // Fire crown for top 1
+    const fireCrown = isTopOne ? `
+      <div class="fire-crown" aria-hidden="true">
+        <span class="flame f1"></span>
+        <span class="flame f2"></span>
+        <span class="flame f3"></span>
+      </div>
+    ` : '';
+    
+    const fireBadge = isTopOne ? `<span class="fire-badge"><i class="fas fa-fire"></i> On Fire</span>` : '';
+    const rankDisplay = rankMeta.medal === rank ? rank : rankMeta.medal;
     
     return `
-      <div class="lbr${user.isMe ? " me" : ""}${activeU === user.id ? " act" : ""}" onclick="openUp('${user.id}')" style="animation-delay:${index * 0.03}s">
-        <div class="lbrnk ${rankClass}">
-          ${medalIcon ? medalIcon : rank}
-        </div>
+      <div class="lbr${user.isMe ? " me" : ""}${activeU === user.id ? " act" : ""}${isTopOne ? " top-one" : ""}" 
+           onclick="openUp('${user.id}', ${rank})" 
+           role="button" tabindex="0" 
+           onkeydown="if(event.key==='Enter'||event.key===' ')openUp('${user.id}', ${rank})"
+           style="animation-delay:${index * 0.03}s">
+        ${fireCrown}
+        <div class="lbrnk ${rankMeta.class}">${rankDisplay}</div>
         <div class="lbava" style="background:${user.color}">${user.initials}</div>
         <div class="lbi">
           <div class="lbnr">
             <span class="lbn">${escapeHtml(user.name)}</span>
-            ${user.isMe ? '<span class="ytag">YOU</span>' : ""}
+            ${user.isMe ? '<span class="ytag">YOU</span>' : ''}
+            ${fireBadge}
           </div>
-          <div class="lbbb">
-            <div class="lbbf" style="width:${percentage}%"></div>
-          </div>
+          <div class="lbbb"><div class="lbbf" style="width:${percentage}%"></div></div>
         </div>
         <div class="lbright">
           <div class="lbh">${user.points} ${pointsLabel}</div>
@@ -461,29 +407,27 @@ async function renderLeaderboard() {
   }).join("");
 }
 
-/* ── OPEN USER PROFILE PANEL ── */
-async function openUp(userId) {
+async function openUp(userId, rank) {
   activeU = userId;
+  currentUserRank = rank || 0;
   
   const user = allUsers.find(u => u.id === userId);
   if (!user) return;
   
   const isMe = userId === currentUserId;
   const userSessions = await loadUserSessions(userId);
+  const isTopOne = currentUserRank === 1;
   
-  // Calculate points for different periods
   const todayPoints = calculateUserPoints(userSessions, "today");
   const weekPoints = calculateUserPoints(userSessions, "week");
   const monthPoints = calculateUserPoints(userSessions, "month");
   const allTimePoints = calculatePoints(userSessions);
-  
   const totalSessions = userSessions.length;
   const streak = calcStreak(userSessions);
   const deepHours = Math.round(userSessions
     .filter(s => s.category === "Deep Work")
     .reduce((sum, s) => sum + s.duration, 0) / 3600);
   
-  // Group projects
   const projects = {};
   userSessions.forEach(s => {
     const projectName = s.project && s.project !== "—" ? s.project : "Untitled";
@@ -508,44 +452,40 @@ async function openUp(userId) {
   const userName = user.name || user.email?.split('@')[0] || "User";
   const userRole = user.role || "SessionTrack member";
   
-  $("upHero").style.background = userColor;
-  $("upHero").innerHTML = `
-    <button class="upcl" onclick="closeUp()"><i class="fas fa-times"></i></button>
-    <div class="upin">
-      <div class="upav">${userInitials}</div>
-      <div class="upnm">${escapeHtml(userName)}${isMe ? " (You)" : ""}</div>
-      <div class="uprl">${escapeHtml(userRole)}</div>
-      <div class="upch">${chips.join("")}</div>
-    </div>
-    <div class="upsb">
-      <div class="ups">
-        <div class="upsv">${todayPoints}</div>
-        <div class="upsl">Today</div>
+  const upHero = getEl("upHero");
+  const upCard = getEl("upCard");
+  const upBody = getEl("upBody");
+  const lbSec = getEl("lbSec");
+  
+  if (upHero) {
+    upHero.style.background = userColor;
+    upHero.className = `uph${isTopOne ? " top-profile" : ""}`;
+    upHero.innerHTML = `
+      <button class="upcl" onclick="closeUp()" aria-label="Close profile"><i class="fas fa-times"></i></button>
+      <div class="upin">
+        <div class="upav">${userInitials}</div>
+        <div class="upnm">${escapeHtml(userName)}${isMe ? " (You)" : ""}</div>
+        <div class="uprl">${escapeHtml(userRole)}</div>
+        ${isTopOne ? '<div class="leader-rank-badge">🔥 Rank #1 · Current Leader</div>' : ''}
+        <div class="upch">${chips.join("")}</div>
       </div>
-      <div class="ups">
-        <div class="upsv">${weekPoints}</div>
-        <div class="upsl">Week</div>
+      <div class="upsb">
+        <div class="ups"><div class="upsv">${todayPoints}</div><div class="upsl">Today</div></div>
+        <div class="ups"><div class="upsv">${weekPoints}</div><div class="upsl">Week</div></div>
+        <div class="ups"><div class="upsv">${monthPoints}</div><div class="upsl">Month</div></div>
+        <div class="ups"><div class="upsv">${allTimePoints}</div><div class="upsl">All Time</div></div>
       </div>
-      <div class="ups">
-        <div class="upsv">${monthPoints}</div>
-        <div class="upsl">Month</div>
-      </div>
-      <div class="ups">
-        <div class="upsv">${allTimePoints}</div>
-        <div class="upsl">All Time</div>
-      </div>
-    </div>
-  `;
+    `;
+  }
   
   let html = "";
-  
   if (projectList.length) {
     html += `<div class="uptit">Projects worked on</div>`;
     html += projectList.map(([name, data]) => {
       const categoryClass = CC[data.category] || "cp-n";
       return `
         <div class="uppr">
-          <div class="upprc"><i class="fas fa-folder" style="font-size:.7rem"></i></div>
+          <div class="upprc"><i class="fas fa-folder"></i></div>
           <div class="upprn">${escapeHtml(name)}</div>
           <div class="upprd">
             <span class="uppcat ${categoryClass}">${data.category}</span>
@@ -578,38 +518,29 @@ async function openUp(userId) {
     html += `<div class="upempty"><i class="fas fa-stopwatch"></i>No sessions recorded</div>`;
   }
   
-  $("upBody").innerHTML = html;
-  $("upCard").style.display = "block";
-  $("lbSec").classList.add("open");
+  if (upBody) upBody.innerHTML = html;
+  if (upCard) upCard.style.display = "block";
+  if (lbSec) lbSec.classList.add("open");
   await renderLeaderboard();
 }
 
 function closeUp() {
   activeU = null;
-  $("upCard").style.display = "none";
-  $("lbSec").classList.remove("open");
+  const upCard = getEl("upCard");
+  const lbSec = getEl("lbSec");
+  if (upCard) upCard.style.display = "none";
+  if (lbSec) lbSec.classList.remove("open");
   renderLeaderboard();
 }
 
-function escapeHtml(str) {
-  if (!str) return "";
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-/* ── SWITCH LEADERBOARD TAB ── */
 function switchLb(btn, tab) {
   document.querySelectorAll(".lbtab").forEach(b => b.classList.remove("on"));
   btn.classList.add("on");
   lbTab = tab;
+  if (activeU) closeUp();
   renderLeaderboard();
 }
 
-/* ── REFRESH ALL DATA ── */
 async function refreshLeaderboard() {
   await loadAllUsers();
   await renderLeaderboard();
@@ -621,18 +552,14 @@ onAuthStateChanged(auth, async (user) => {
     window.location.href = "login.html";
     return;
   }
-  
   currentUser = user;
   currentUserId = user.uid;
-  
   await loadCurrentUserProfile();
   await loadAllUsers();
   await renderLeaderboard();
-  
-  setInterval(initHdr, 60000);
+  setInterval(() => initHdr(), 60000);
 });
 
-/* ── LOGOUT FUNCTION ── */
 async function logout() {
   try {    
     localStorage.removeItem("activeTimer");

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>Log in · SessionTrack</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,12 +13,35 @@
 </head>
 <body>
   <div class="bg-ambient" aria-hidden="true"></div>
+  
+  <!-- Form-side ambient motion -->
+  <div class="login-motion-bg" aria-hidden="true">
+    <span class="motion-blob mb-1"></span>
+    <span class="motion-blob mb-2"></span>
+    <span class="motion-blob mb-3"></span>
+  </div>
 
   <!-- ══ LEFT PANEL ══ -->
   <aside class="auth-left-panel" aria-hidden="true">
     <div class="deco-ring ring-a"></div>
     <div class="deco-ring ring-b"></div>
     <div class="deco-ring ring-c"></div>
+    
+    <!-- CHAOS BACKGROUND ANIMATION -->
+    <div class="chaos-bg" aria-hidden="true">
+      <div class="chaos-grid"></div>
+      <div class="chaos-orbit orbit-1"></div>
+      <div class="chaos-orbit orbit-2"></div>
+      <div class="chaos-orbit orbit-3"></div>
+      <div class="clock-core">
+        <span class="clock-hand hand-min"></span>
+        <span class="clock-hand hand-sec"></span>
+        <span class="clock-dot"></span>
+      </div>
+      <div class="tick-field" id="tickField"></div>
+      <div class="time-rain" id="timeRain"></div>
+      <div class="focus-particles" id="focusParticles"></div>
+    </div>
 
     <!-- Top -->
     <div class="panel-top">
@@ -38,7 +61,7 @@
     <div class="panel-mid">
       <div class="panel-eyebrow">
         <span class="live-dot"></span>
-        500+ creators · live
+       
       </div>
 
       <h1 class="panel-heading">
@@ -180,7 +203,7 @@
         <button onclick="sendResetEmail()" id="resetBtn">Send Reset Link</button>
         <button onclick="closeResetModal()">Cancel</button>
       </div>
-      <p>Check your spam section in email for resent link!</p>
+      <p>Check your spam section in email for reset link!</p>
     </div>
   </div>
 

@@ -15,9 +15,20 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.11.0/f
 let currentUser = null;
 let userSessions = [];
 
+// Theme variables
+let selectedColor = null;
+let selectedTheme = null;
+let selectedGlow = null;
+
+// Default themes
+const DEFAULT_COLOR = "linear-gradient(135deg,#2152e0,#b84a8c)";
+const DEFAULT_THEME = "linear-gradient(155deg,#1a3fcc 0%,#2152e0 45%,#3b60e8 75%,#b84a8c 100%)";
+const DEFAULT_GLOW = "rgba(33,82,224,0.28)";
+
 /* ── UTILS ── */
-const $ = (id) => document.getElementById(id);
+const getEl = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, "0");
+
 function fmtDate(d) {
   return d.toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -36,8 +47,8 @@ const getDk = () => localStorage.getItem("st_dark") === "1";
 const putDk = (v) => localStorage.setItem("st_dark", v ? "1" : "0");
 function applyDk(on) {
   document.documentElement.setAttribute("data-theme", on ? "dark" : "light");
-  const dIco = $("dIco");
-  const dLbl = $("dLbl");
+  const dIco = getEl("dIco");
+  const dLbl = getEl("dLbl");
   if (dIco) dIco.className = on ? "fas fa-sun" : "fas fa-moon";
   if (dLbl) dLbl.textContent = on ? "Light" : "Dark";
 }
@@ -50,7 +61,7 @@ applyDk(getDk());
 
 /* ── TOAST ── */
 function toast(msg, type = "info") {
-  const t = $("toast");
+  const t = getEl("toast");
   if (!t) return;
   t.innerHTML = `<i class="fas fa-${type === "ok" ? "check-circle" : type === "error" ? "exclamation-circle" : "info-circle"}"></i> ${msg}`;
   t.className = `tst show ${type}`;
@@ -82,8 +93,35 @@ function calcStreak(all) {
   return n;
 }
 
-/* ── SELECTED COLOR ── */
-let selectedColor = null;
+/* ── HEX TO RGBA HELPER ── */
+function hexToRgba(hex, alpha = 0.28) {
+  const clean = hex.replace("#", "");
+  const bigint = parseInt(clean, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/* ── APPLY PROFILE THEME ── */
+function applyProfileTheme(color, theme, glow) {
+  const heroAva = getEl("heroAva");
+  const heroBanner = document.querySelector(".hero-banner");
+  const bgAmbient = document.querySelector(".bg-ambient");
+  
+  if (heroAva && color) {
+    heroAva.style.background = color;
+  }
+  
+  if (heroBanner) {
+    heroBanner.style.setProperty("--profile-theme", theme || DEFAULT_THEME);
+    heroBanner.style.setProperty("--profile-glow", glow || DEFAULT_GLOW);
+  }
+  
+  if (bgAmbient) {
+    bgAmbient.style.setProperty("--profile-glow", glow || DEFAULT_GLOW);
+  }
+}
 
 /* ── LOAD USER SESSIONS FROM FIRESTORE ── */
 async function loadUserSessions() {
@@ -94,14 +132,12 @@ async function loadUserSessions() {
     const q = query(
       sessionsRef,
       where("userId", "==", currentUser.uid)
-      // Note: orderBy removed temporarily - will add back after index is created
     );
     const snapshot = await getDocs(q);
     userSessions = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
-    // Sort manually by timestamp (newest first)
     userSessions.sort((a, b) => (b.ts || 0) - (a.ts || 0));
     return userSessions;
   } catch (error) {
@@ -120,14 +156,13 @@ async function loadProfileFromFirestore() {
     
     if (userSnap.exists()) {
       const data = userSnap.data();
-      // Load into form
-      const fName = $("fName");
-      const fRole = $("fRole");
-      const fCollege = $("fCollege");
-      const fLocation = $("fLocation");
-      const fGithub = $("fGithub");
-      const fPortfolio = $("fPortfolio");
-      const fBio = $("fBio");
+      const fName = getEl("fName");
+      const fRole = getEl("fRole");
+      const fCollege = getEl("fCollege");
+      const fLocation = getEl("fLocation");
+      const fGithub = getEl("fGithub");
+      const fPortfolio = getEl("fPortfolio");
+      const fBio = getEl("fBio");
       
       if (fName) fName.value = data.name || "";
       if (fRole) fRole.value = data.role || "";
@@ -137,24 +172,49 @@ async function loadProfileFromFirestore() {
       if (fPortfolio) fPortfolio.value = data.portfolio || "";
       if (fBio) fBio.value = data.bio || "";
       
-      // Select color
-      if (data.color) {
-        const dot = document.querySelector(`.color-dot[data-color="${data.color}"]`);
-        if (dot) {
-          document.querySelectorAll(".color-dot").forEach(d => d.classList.remove("selected"));
+      // Load theme data
+      selectedColor = data.color || DEFAULT_COLOR;
+      selectedTheme = data.theme || DEFAULT_THEME;
+      selectedGlow = data.glow || DEFAULT_GLOW;
+      
+      // Find and select matching theme dot
+      const themeDots = document.querySelectorAll(".theme-dot");
+      let themeFound = false;
+      themeDots.forEach(dot => {
+        if (dot.dataset.theme === selectedTheme) {
           dot.classList.add("selected");
-          selectedColor = data.color;
+          themeFound = true;
+        } else {
+          dot.classList.remove("selected");
         }
-      } else {
-        const first = document.querySelector(".color-dot");
-        if (first) {
-          first.classList.add("selected");
-          selectedColor = first.dataset.color;
-        }
-      }
+      });
+      
+      // If no matching dot, just apply the saved theme
+      applyProfileTheme(selectedColor, selectedTheme, selectedGlow);
+      
+      // Update hero avatar preview
+      const heroAva = getEl("heroAva");
+      const heroName = getEl("heroName");
+      const heroRole = getEl("heroRole");
+      if (heroAva) heroAva.style.background = selectedColor;
+      if (heroName && data.name) heroName.textContent = data.name;
+      if (heroRole && data.role) heroRole.textContent = data.role;
       
       return data;
     } else {
+      // New user - set defaults
+      selectedColor = DEFAULT_COLOR;
+      selectedTheme = DEFAULT_THEME;
+      selectedGlow = DEFAULT_GLOW;
+      
+      // Select first theme dot by default
+      const firstDot = document.querySelector(".theme-dot");
+      if (firstDot) {
+        document.querySelectorAll(".theme-dot").forEach(d => d.classList.remove("selected"));
+        firstDot.classList.add("selected");
+      }
+      
+      applyProfileTheme(selectedColor, selectedTheme, selectedGlow);
       return null;
     }
   } catch (error) {
@@ -170,7 +230,7 @@ async function saveProfileToFirestore() {
     return false;
   }
   
-  const fName = $("fName");
+  const fName = getEl("fName");
   const name = fName ? fName.value.trim() : "";
   
   if (!name) {
@@ -179,8 +239,7 @@ async function saveProfileToFirestore() {
     return false;
   }
   
-  // Show saving state
-  const saveBtn = $("saveBtn");
+  const saveBtn = getEl("saveBtn");
   const originalText = saveBtn ? saveBtn.innerHTML : "";
   if (saveBtn) {
     saveBtn.disabled = true;
@@ -189,13 +248,15 @@ async function saveProfileToFirestore() {
   
   const profileData = {
     name: name,
-    role: $("fRole")?.value.trim() || "SessionTrack member",
-    college: $("fCollege")?.value.trim() || "",
-    location: $("fLocation")?.value.trim() || "",
-    github: $("fGithub")?.value.trim() || "",
-    portfolio: $("fPortfolio")?.value.trim() || "",
-    bio: $("fBio")?.value.trim() || "",
-    color: selectedColor || "linear-gradient(135deg,#2152e0,#b84a8c)",
+    role: getEl("fRole")?.value.trim() || "SessionTrack member",
+    college: getEl("fCollege")?.value.trim() || "",
+    location: getEl("fLocation")?.value.trim() || "",
+    github: getEl("fGithub")?.value.trim() || "",
+    portfolio: getEl("fPortfolio")?.value.trim() || "",
+    bio: getEl("fBio")?.value.trim() || "",
+    color: selectedColor || DEFAULT_COLOR,
+    theme: selectedTheme || DEFAULT_THEME,
+    glow: selectedGlow || DEFAULT_GLOW,
     email: currentUser.email,
     updatedAt: new Date().toISOString()
   };
@@ -204,12 +265,9 @@ async function saveProfileToFirestore() {
     const userRef = doc(db, "users", currentUser.uid);
     await setDoc(userRef, profileData, { merge: true });
     
-    // Show success toast
     toast("Profile saved successfully! ✓", "ok");
     
-    // Wait a moment for user to see the success message
     setTimeout(() => {
-      // Redirect to dashboard
       window.location.href = "dashboard.html";
     }, 1500);
     
@@ -220,7 +278,6 @@ async function saveProfileToFirestore() {
     console.error("Error saving profile:", error);
     toast("Failed to save profile. Please try again.", "error");
     
-    // Restore button
     if (saveBtn) {
       saveBtn.disabled = false;
       saveBtn.innerHTML = originalText;
@@ -239,14 +296,18 @@ async function updateHero() {
     
     let name = "User";
     let role = "SessionTrack member";
-    let color = "linear-gradient(135deg,#2152e0,#b84a8c)";
+    let color = DEFAULT_COLOR;
+    let theme = DEFAULT_THEME;
+    let glow = DEFAULT_GLOW;
     let college = "", location = "", github = "", portfolio = "";
     
     if (userSnap.exists()) {
       const data = userSnap.data();
       name = data.name || currentUser.email?.split('@')[0] || "User";
       role = data.role || "SessionTrack member";
-      color = data.color || "linear-gradient(135deg,#2152e0,#b84a8c)";
+      color = data.color || DEFAULT_COLOR;
+      theme = data.theme || DEFAULT_THEME;
+      glow = data.glow || DEFAULT_GLOW;
       college = data.college || "";
       location = data.location || "";
       github = data.github || "";
@@ -255,15 +316,19 @@ async function updateHero() {
       name = currentUser.email?.split('@')[0] || "User";
     }
     
-    const ava = initials(name);
+    // Apply theme
+    applyProfileTheme(color, theme, glow);
     
-    const heroAva = $("heroAva");
-    const heroName = $("heroName");
-    const heroRole = $("heroRole");
-    const heroChips = $("heroChips");
+    // Update avatar and text
+    const heroAva = getEl("heroAva");
+    const heroName = getEl("heroName");
+    const heroRole = getEl("heroRole");
+    const heroChips = getEl("heroChips");
     
-    if (heroAva) heroAva.textContent = ava;
-    if (heroAva) heroAva.style.background = color;
+    if (heroAva) {
+      heroAva.textContent = initials(name);
+      heroAva.style.background = color;
+    }
     if (heroName) heroName.textContent = name;
     if (heroRole) heroRole.textContent = role;
     
@@ -280,9 +345,9 @@ async function updateHero() {
     const totSecs = userSessions.reduce((a, s) => a + s.duration, 0);
     const streak = calcStreak(userSessions);
     
-    const hsTot = $("hsTot");
-    const hsSess = $("hsSess");
-    const hsStreak = $("hsStreak");
+    const hsTot = getEl("hsTot");
+    const hsSess = getEl("hsSess");
+    const hsStreak = getEl("hsStreak");
     
     if (hsTot) hsTot.textContent = Math.round(totSecs / 3600) + "h";
     if (hsSess) hsSess.textContent = userSessions.length;
@@ -306,12 +371,12 @@ async function loadActivity() {
   const streak = calcStreak(userSessions);
   const days = new Set(userSessions.map((s) => s.date)).size;
 
-  const actTotal = $("actTotal");
-  const actDeep = $("actDeep");
-  const actSess = $("actSess");
-  const actStreak = $("actStreak");
-  const actLearn = $("actLearn");
-  const actDays = $("actDays");
+  const actTotal = getEl("actTotal");
+  const actDeep = getEl("actDeep");
+  const actSess = getEl("actSess");
+  const actStreak = getEl("actStreak");
+  const actLearn = getEl("actLearn");
+  const actDays = getEl("actDays");
   
   if (actTotal) actTotal.textContent = Math.round(totSecs / 3600) + "h";
   if (actDeep) actDeep.textContent = Math.round(deepSecs / 3600) + "h";
@@ -333,8 +398,8 @@ async function loadRecentSess() {
   await loadUserSessions();
   const recentSessions = userSessions.slice(0, 6);
   
-  const recentSub = $("recentSub");
-  const sessListEl = $("sessListEl");
+  const recentSub = getEl("recentSub");
+  const sessListEl = getEl("sessListEl");
   
   if (recentSub) recentSub.textContent = `${recentSessions.length} of ${userSessions.length} sessions`;
   
@@ -362,27 +427,40 @@ async function loadRecentSess() {
     .join("");
 }
 
-/* ── EXPOSE FUNCTIONS TO GLOBAL SCOPE ── */
-window.saveProfile = async () => {
-  await saveProfileToFirestore();
-};
-
+/* ── PICK COLOR / THEME ── */
 window.pickColor = (dot) => {
-  document.querySelectorAll(".color-dot").forEach(d => d.classList.remove("selected"));
+  document.querySelectorAll(".theme-dot, .color-dot").forEach(d => d.classList.remove("selected"));
   dot.classList.add("selected");
-  selectedColor = dot.dataset.color;
-  const heroAva = $("heroAva");
-  if (heroAva) heroAva.style.background = selectedColor;
+  
+  selectedColor = dot.dataset.color || DEFAULT_COLOR;
+  selectedTheme = dot.dataset.theme || dot.dataset.color || DEFAULT_THEME;
+  selectedGlow = dot.dataset.glow || DEFAULT_GLOW;
+  
+  applyProfileTheme(selectedColor, selectedTheme, selectedGlow);
 };
 
-window.toggleDark = toggleDark;
+/* ── APPLY CUSTOM THEME ── */
+window.applyCustomTheme = () => {
+  const input = getEl("customThemeColor");
+  const hex = input?.value || "#2152e0";
+  
+  selectedColor = `linear-gradient(135deg,${hex},#111827)`;
+  selectedTheme = `linear-gradient(155deg,${hex} 0%,#1a1a2e 45%,#0d0d1a 100%)`;
+  selectedGlow = hexToRgba(hex, 0.28);
+  
+  // Remove selection from preset dots
+  document.querySelectorAll(".theme-dot, .color-dot").forEach(d => d.classList.remove("selected"));
+  
+  applyProfileTheme(selectedColor, selectedTheme, selectedGlow);
+  toast("Custom theme applied! Save to keep it.", "info");
+};
 
 /* ── LIVE PREVIEW ── */
-const fName = $("fName");
-const fRole = $("fRole");
-const heroAva = $("heroAva");
-const heroName = $("heroName");
-const heroRole = $("heroRole");
+const fName = getEl("fName");
+const fRole = getEl("fRole");
+const heroAva = getEl("heroAva");
+const heroName = getEl("heroName");
+const heroRole = getEl("heroRole");
 
 if (fName) {
   fName.addEventListener("input", function () {
@@ -397,6 +475,11 @@ if (fRole) {
     if (heroRole) heroRole.textContent = this.value.trim() || "Your role";
   });
 }
+
+/* ── SAVE PROFILE WRAPPER ── */
+window.saveProfile = async () => {
+  await saveProfileToFirestore();
+};
 
 /* ── AUTH LISTENER ── */
 onAuthStateChanged(auth, async (user) => {
@@ -413,4 +496,4 @@ onAuthStateChanged(auth, async (user) => {
   await loadRecentSess();
 });
 
-window.saveProfile = saveProfile;
+window.toggleDark = toggleDark;

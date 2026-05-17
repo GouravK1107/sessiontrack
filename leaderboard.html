@@ -1,9 +1,16 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>Leaderboard · SessionTrack</title>
+<script>
+  // Prevent theme flicker
+  (function() {
+    const dark = localStorage.getItem("st_dark") === "1";
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -14,43 +21,69 @@
 <body>
 <div class="app">
   <div class="sbo" id="sbo" onclick="closeSb()"></div>
-<nav class="sb" id="sb">
-  <div class="sb-top"><div class="sb-badge">ST</div><div><div class="sb-bn">SessionTrack</div><div class="sb-bt">focus analytics</div></div></div>
-  <div class="sb-nav">
-    <div class="sb-sec">Main</div>
-    <a class="ni" href="dashboard.html"><i class="fas fa-th-large"></i>Dashboard</a>
-<a class="ni" href="sessions.html"><i class="fas fa-stopwatch"></i>Sessions</a>
-<a class="ni" href="analytics.html"><i class="fas fa-chart-bar"></i>Analytics</a>
-<div class="sb-sec">Community</div>
-<a class="ni on" href="leaderboard.html"><i class="fas fa-trophy"></i>Leaderboard</a>
-
-    <div class="sb-sec">Account</div>
-    <a class="ni" href="dashboard.html"><i class="fas fa-home"></i>Home</a>
-    <button class="ni logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i>Logout</button>
-  </div>
-  <div class="sb-foot"><a class="sb-user" href="profile.html"><div class="sb-av" id="sbAva">GK</div><div><div class="sb-un" id="sbName">Gourav K</div><div class="sb-ur" id="sbRole">BCA · Backend Dev</div></div><i class="fas fa-external-link-alt" style="font-size:.6rem;color:var(--tm);margin-left:auto"></i></a></div>
-</nav>
+  <nav class="sb" id="sb">
+    <div class="sb-top">
+      <div class="sb-badge">ST</div>
+      <div>
+        <div class="sb-bn">SessionTrack</div>
+        <div class="sb-bt">focus analytics</div>
+      </div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-sec">Main</div>
+      <a class="ni" href="dashboard.html"><i class="fas fa-th-large"></i>Dashboard</a>
+      <a class="ni" href="sessions.html"><i class="fas fa-stopwatch"></i>Sessions</a>
+      <a class="ni" href="analytics.html"><i class="fas fa-chart-bar"></i>Analytics</a>
+      <div class="sb-sec">Community</div>
+      <a class="ni on" href="leaderboard.html"><i class="fas fa-trophy"></i>Leaderboard</a>
+      <div class="sb-sec">Account</div>
+      <a class="ni" href="dashboard.html"><i class="fas fa-home"></i>Home</a>
+      <button class="ni logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i>Logout</button>
+    </div>
+    <div class="sb-foot">
+      <a class="sb-user" href="profile.html">
+        <div class="sb-av" id="sbAva">GK</div>
+        <div>
+          <div class="sb-un" id="sbName">Gourav K</div>
+          <div class="sb-ur" id="sbRole">BCA · Backend Dev</div>
+        </div>
+        <i class="fas fa-external-link-alt" style="font-size:.6rem;color:var(--tm);margin-left:auto"></i>
+      </a>
+    </div>
+  </nav>
+  
   <div class="main">
     <header class="hdr">
-  <button class="hbtn" onclick="toggleSb()"><i class="fas fa-bars"></i></button>
-  <div class="hg"><h2 id="greetTxt">Leaderboard 🏆</h2><p id="greetSub">See how you stack up against other users</p></div>
-  
-  <div class="ha">
-    <div class="hdate" id="hdrDate"></div>
-    <button class="dbtn" onclick="toggleDark()"><i class="fas fa-moon" id="dIco"></i><span id="dLbl">Dark</span></button>
-    <a href="profile.html" class="ibtn" title="Profile"><i class="fas fa-user"></i></a>
-  </div>
-</header>
+      <button class="hbtn" onclick="toggleSb()" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <div class="hg">
+        <h2 id="pageTitle">Leaderboard 🏆</h2>
+        <p id="greetSub">See how you stack up against other users</p>
+      </div>
+      <div class="ha">
+        <div class="hdate" id="hdrDate"></div>
+        <button class="dbtn" onclick="toggleDark()" aria-label="Toggle dark mode">
+          <i class="fas fa-moon" id="dIco"></i>
+          <span id="dLbl">Dark</span>
+        </button>
+        <a href="profile.html" class="ibtn" title="Profile" aria-label="Profile">
+          <i class="fas fa-user"></i>
+        </a>
+      </div>
+    </header>
+    
     <div class="pb">
       <div class="lb-layout" id="lbSec">
-        <div class="card">
+        <div class="card leaderboard-card">
           <div class="ch">
-            <div><div class="ct">🏆 Leaderboard</div><div class="cs">Click any user to see their profile</div></div>
+            <div>
+              <div class="ct">🏆 Leaderboard</div>
+              <div class="cs" id="lbSubtitle">Click any user to see their profile</div>
+            </div>
             <div class="lbtabs">
-              <button class="lbtab on" onclick="switchLb(this,'today')">Today</button>
-              <button class="lbtab" onclick="switchLb(this,'week')">Week</button>
-              <button class="lbtab" onclick="switchLb(this,'month')">Month</button>
-              <button class="lbtab" onclick="switchLb(this,'all')">All Time</button>
+              <button class="lbtab on" data-period="today" onclick="switchLb(this,'today')">Today</button>
+              <button class="lbtab" data-period="week" onclick="switchLb(this,'week')">Week</button>
+              <button class="lbtab" data-period="month" onclick="switchLb(this,'month')">Month</button>
+              <button class="lbtab" data-period="all" onclick="switchLb(this,'all')">All Time</button>
             </div>
           </div>
           <div class="lbrows" id="lbList"></div>

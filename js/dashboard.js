@@ -17,7 +17,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.11.0/f
 
 let currentUser = null;
 let userSessions = [];
-let userGoals = []; // Store goals from Firestore
+let userGoals = [];
 let timerInterval = null;
 let sessionStartTime = null;
 let elapsedSeconds = 0;
@@ -79,7 +79,6 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 
-// Points per hour for each category
 const POINTS_PER_HOUR = {
   "Deep Work": 20,
   "Learning": 15,
@@ -87,27 +86,21 @@ const POINTS_PER_HOUR = {
   "Low Productivity": 5
 };
 
-/* ── CALCULATE POINTS FOR A SESSION ── */
 function getSessionPoints(session) {
   const hours = session.duration / 3600;
   const pointsPerHour = POINTS_PER_HOUR[session.category] || 5;
   return Math.round(hours * pointsPerHour);
 }
 
-/* ── GOALS FUNCTIONS (Firestore Synced) ── */
-
-// Load goals from Firestore
+/* ── GOALS FUNCTIONS ── */
 async function loadGoalsFromFirestore() {
   if (!currentUser) return [];
-  
   try {
     const userRef = doc(db, "users", currentUser.uid);
     const userSnap = await getDoc(userRef);
-    
     if (userSnap.exists()) {
       const data = userSnap.data();
       userGoals = data.goals || [];
-      // Also update localStorage cache
       localStorage.setItem("st_goals_cache", JSON.stringify(userGoals));
       return userGoals;
     }
@@ -118,10 +111,8 @@ async function loadGoalsFromFirestore() {
   }
 }
 
-// Save goals to Firestore
 async function saveGoalsToFirestore(goals) {
   if (!currentUser) return;
-  
   try {
     const userRef = doc(db, "users", currentUser.uid);
     await setDoc(userRef, { goals: goals }, { merge: true });
@@ -132,47 +123,35 @@ async function saveGoalsToFirestore(goals) {
   }
 }
 
-// Add a new goal
 async function addGoalToFirestore(goalText) {
   if (!goalText.trim()) return;
-  
   const newGoal = {
     id: Date.now().toString(),
     text: goalText.trim(),
     repeating: false,
     createdAt: new Date().toISOString()
   };
-  
   const updatedGoals = [...userGoals, newGoal];
   await saveGoalsToFirestore(updatedGoals);
-  
-  // Also add to today's goals
   const todayGoals = getTodayGoals();
   todayGoals.push({ text: goalText.trim(), done: false });
   saveTodayGoals(todayGoals);
-  
   await refreshDashboard();
   toast(`✓ Goal added: "${goalText}"`, "ok");
 }
 
-// Delete a goal
 async function deleteGoalFromFirestore(goalId) {
   const goalToRemove = userGoals.find(g => g.id === goalId);
   if (!goalToRemove) return;
-  
   const updatedGoals = userGoals.filter(g => g.id !== goalId);
   await saveGoalsToFirestore(updatedGoals);
-  
-  // Also remove from today's goals
   const todayGoals = getTodayGoals();
   const updatedTodayGoals = todayGoals.filter(g => g.text !== goalToRemove.text);
   saveTodayGoals(updatedTodayGoals);
-  
   await refreshDashboard();
   toast(`🗑️ Goal removed`, "warn");
 }
 
-// Toggle repeating status
 async function toggleRepeatingGoal(goalId) {
   const updatedGoals = userGoals.map(g => {
     if (g.id === goalId) {
@@ -180,33 +159,25 @@ async function toggleRepeatingGoal(goalId) {
     }
     return g;
   });
-  
   await saveGoalsToFirestore(updatedGoals);
-  
   const goal = userGoals.find(g => g.id === goalId);
   const isNowRepeating = !goal?.repeating;
-  
   if (isNowRepeating) {
     toast(`🔄 "${goal.text}" will repeat daily across all devices`, "ok");
   } else {
     toast(`⛔ "${goal.text}" will no longer repeat`, "info");
   }
-  
   await refreshDashboard();
 }
 
-// Mark goal as completed (for today)
 async function completeGoalToday(goalText) {
   const todayGoals = getTodayGoals();
   const goalIndex = todayGoals.findIndex(g => g.text === goalText);
-  
   if (goalIndex !== -1 && !todayGoals[goalIndex].done) {
     todayGoals[goalIndex].done = true;
     saveTodayGoals(todayGoals);
     await refreshDashboard();
     toast(`✓ Goal completed: "${goalText}"`, "ok");
-    
-    // Check if all goals are done
     const allDone = todayGoals.length > 0 && todayGoals.every(g => g.done);
     if (allDone) {
       toast("🌟 All daily goals hit! Great work today 🎉", "ok");
@@ -216,30 +187,22 @@ async function completeGoalToday(goalText) {
   return false;
 }
 
-// Reset daily goals (adds repeating goals for today)
 async function resetDailyGoals() {
-  const todayStr = fmtDate(new Date());
   const existingTodayGoals = getTodayGoals();
   const existingTexts = existingTodayGoals.map(g => g.text);
-  
-  // Get repeating goals that need to be added
   const repeatingGoals = userGoals.filter(g => g.repeating === true);
   const goalsToAdd = [];
-  
   for (const goal of repeatingGoals) {
     if (!existingTexts.includes(goal.text)) {
       goalsToAdd.push({ text: goal.text, done: false });
     }
   }
-  
-  // Also add all non-repeating goals that are not in today's goals
   const nonRepeatingGoals = userGoals.filter(g => g.repeating !== true);
   for (const goal of nonRepeatingGoals) {
     if (!existingTexts.includes(goal.text)) {
       goalsToAdd.push({ text: goal.text, done: false });
     }
   }
-  
   if (goalsToAdd.length > 0) {
     const updatedTodayGoals = [...existingTodayGoals, ...goalsToAdd];
     saveTodayGoals(updatedTodayGoals);
@@ -247,18 +210,15 @@ async function resetDailyGoals() {
   }
 }
 
-// Check and reset daily goals for new day
 async function checkAndResetDailyGoals() {
   const lastDate = localStorage.getItem("lastGoalResetDate");
   const todayStr = fmtDate(new Date());
-  
   if (lastDate !== todayStr) {
     await resetDailyGoals();
     localStorage.setItem("lastGoalResetDate", todayStr);
   }
 }
 
-// Get today's goals from localStorage
 function getTodayGoals() {
   try {
     return JSON.parse(localStorage.getItem(`st_dmh_${fmtDate(new Date())}`) || "[]");
@@ -272,11 +232,11 @@ function saveTodayGoals(arr) {
 }
 
 function isGoalHit(ds) {
-  const items = getTodayGoals();
+  const items = JSON.parse(localStorage.getItem(`st_dmh_${ds}`) || "[]");
   return items.length > 0 && items.every((i) => i.done);
 }
 
-/* ── TIMER PERSISTENCE FUNCTIONS ── */
+/* ── TIMER PERSISTENCE ── */
 function saveTimerState() {
   if (isTimerRunning && sessionStartTime) {
     const timerState = {
@@ -301,18 +261,15 @@ function loadTimerState() {
         const startTimeMs = state.startTime;
         const now = Date.now();
         const elapsed = Math.floor((now - startTimeMs) / 1000);
-        
         sessionStartTime = new Date(startTimeMs);
         elapsedSeconds = elapsed;
         isTimerRunning = true;
-
         if (state.category && $("catSel")) $("catSel").value = state.category;
         if (state.project) {
           const projInp = $("projInp");
           if (projInp) projInp.value = state.project;
         }
         if (state.task && $("taskInp")) $("taskInp").value = state.task;
-
         startTimerUI();
         return true;
       }
@@ -325,50 +282,41 @@ function loadTimerState() {
 
 function startTimerUI() {
   if (timerInterval) return;
-
   $("tSt").textContent = fmt12(sessionStartTime);
   $("tDt").textContent = fmtDate(sessionStartTime);
   $("tClk").classList.add("run");
-  
-  const timerCard = $("tc2");
+  const timerCard = document.querySelector(".clock-card");
   if (timerCard) timerCard.classList.add("running");
-  
   updateTimerStage(0);
-  
   $("sDot").className = "sdot run";
   $("sTxtEl").textContent = "Running";
   $("btnStart").disabled = true;
   $("btnStop").disabled = false;
   $("catSel").disabled = true;
   $("taskInp").disabled = true;
-
   const pw = $("projWrap");
   if (pw) pw.querySelectorAll("input,select").forEach((el) => (el.disabled = true));
-
   updateTimerDisplay();
-
   timerInterval = setInterval(() => {
     updateTimerDisplay();
     saveTimerState();
   }, 1000);
+  startTickSound();
 }
 
 function updateTimerDisplay() {
   if (!sessionStartTime) return;
-
   const now = Date.now();
   elapsedSeconds = Math.floor((now - sessionStartTime.getTime()) / 1000);
-
   $("tClk").textContent = formatTime(elapsedSeconds);
   updateTimerStage(elapsedSeconds);
+  updateAnalogClock(elapsedSeconds);
 }
 
 function updateTimerStage(seconds) {
   const tclk = $("tClk");
   if (!tclk) return;
-  
   tclk.classList.remove("stage-1", "stage-2", "stage-3", "stage-4");
-  
   if (seconds < 600) {
     tclk.classList.add("stage-1");
   } else if (seconds < 1800) {
@@ -396,7 +344,6 @@ function toggleDark() {
 }
 applyDk(getDk());
 
-/* ── TOAST ── */
 function toast(msg, type = "info") {
   const t = $("toast");
   t.innerHTML = `<i class="fas fa-${type === "ok" ? "check-circle" : type === "warn" ? "exclamation-triangle" : "info-circle"}"></i> ${msg}`;
@@ -407,7 +354,6 @@ function toast(msg, type = "info") {
   }, 3200);
 }
 
-/* ── SIDEBAR ── */
 function toggleSb() {
   $("sb").classList.toggle("open");
   $("sbo").classList.toggle("on");
@@ -417,55 +363,40 @@ function closeSb() {
   $("sbo").classList.remove("on");
 }
 
-/* ── LOAD USER PROFILE FROM FIREBASE ── */
 async function loadUserProfile() {
   if (!currentUser) return null;
-  
   try {
     const userRef = doc(db, "users", currentUser.uid);
     const userSnap = await getDoc(userRef);
-    
     if (userSnap.exists()) {
       const data = userSnap.data();
       const name = data.name || currentUser.email?.split('@')[0] || "User";
       const role = data.role || "SessionTrack member";
-      const color = data.color || "linear-gradient(135deg,#2152e0,#b84a8c)";
+      const color = data.color || "linear-gradient(135deg,#0078ff,#3b8eff)";
       const avatarInitials = initials(name);
-      
       const sbAva = $("sbAva");
       if (sbAva) {
         sbAva.textContent = avatarInitials;
         sbAva.style.background = color;
-        sbAva.style.backgroundSize = "cover";
       }
-      
       if ($("sbName")) $("sbName").textContent = name;
       if ($("sbRole")) $("sbRole").textContent = role;
-      
       initHdr(name);
-      
       localStorage.setItem("st_profile", JSON.stringify({
-        name: name,
-        role: role,
-        color: color,
-        avatar: avatarInitials
+        name: name, role: role, color: color, avatar: avatarInitials
       }));
-      
       return data;
     } else {
       const defaultName = currentUser.email?.split('@')[0] || "User";
       const defaultInitials = initials(defaultName);
-      const defaultColor = "linear-gradient(135deg,#2152e0,#b84a8c)";
-      
+      const defaultColor = "linear-gradient(135deg,#0078ff,#3b8eff)";
       const sbAva = $("sbAva");
       if (sbAva) {
         sbAva.textContent = defaultInitials;
         sbAva.style.background = defaultColor;
-        sbAva.style.backgroundSize = "cover";
       }
       if ($("sbName")) $("sbName").textContent = defaultName;
       if ($("sbRole")) $("sbRole").textContent = "SessionTrack member";
-      
       initHdr(defaultName);
       return null;
     }
@@ -489,10 +420,7 @@ function initHdr(name = "User") {
   const hd = $("hdrDate");
   if (hd) {
     hd.textContent = n.toLocaleDateString("en-IN", {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
+      weekday: "short", day: "2-digit", month: "short", year: "numeric",
     });
   }
   const h = n.getHours();
@@ -507,22 +435,13 @@ function initHdr(name = "User") {
   }
 }
 
-/* ── LOAD SESSIONS FROM FIREBASE ── */
 async function loadSessions() {
   if (!currentUser) return [];
-  
   try {
     const sessionsRef = collection(db, "sessions");
-    const q = query(
-      sessionsRef,
-      where("userId", "==", currentUser.uid),
-      orderBy("ts", "desc")
-    );
+    const q = query(sessionsRef, where("userId", "==", currentUser.uid), orderBy("ts", "desc"));
     const snapshot = await getDocs(q);
-    userSessions = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    userSessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return userSessions;
   } catch (error) {
     console.error("Error loading sessions:", error);
@@ -530,14 +449,11 @@ async function loadSessions() {
   }
 }
 
-/* ── SAVE SESSION TO FIREBASE ── */
 async function saveSession(sessionData) {
   if (!currentUser) return null;
-  
   try {
     const docRef = await addDoc(collection(db, "sessions"), {
-      ...sessionData,
-      userId: currentUser.uid
+      ...sessionData, userId: currentUser.uid
     });
     return docRef.id;
   } catch (error) {
@@ -547,10 +463,8 @@ async function saveSession(sessionData) {
   }
 }
 
-/* ── DELETE SESSION ── */
 async function deleteSession(sessionId) {
   if (!currentUser) return;
-  
   try {
     await deleteDoc(doc(db, "sessions", sessionId));
     toast("Session deleted", "warn");
@@ -561,64 +475,43 @@ async function deleteSession(sessionId) {
   }
 }
 
-/* ── CALCULATE STREAK ── */
 function calcStreak(sessions) {
   if (!sessions.length) return 0;
-  
   const sessionMap = new Map();
-  sessions.forEach(s => {
-    sessionMap.set(s.date, true);
-  });
-  
+  sessions.forEach(s => { sessionMap.set(s.date, true); });
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = fmtDate(today);
-  
   let streak = 0;
   let checkDate = new Date(today);
-  
   if (sessionMap.has(todayStr)) {
     while (true) {
       const dateStr = fmtDate(checkDate);
       if (sessionMap.has(dateStr)) {
         streak++;
         checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        break;
-      }
+      } else break;
     }
     return streak;
   }
-  
   let tempDate = new Date(today);
   tempDate.setDate(tempDate.getDate() - 1);
-  
   while (true) {
     const dateStr = fmtDate(tempDate);
     if (sessionMap.has(dateStr)) {
       streak++;
       tempDate.setDate(tempDate.getDate() - 1);
-    } else {
-      break;
-    }
+    } else break;
   }
-  
   return streak;
 }
 
 function calcLongestStreak(sessions) {
   if (!sessions.length) return 0;
-  
-  const dates = [...new Set(sessions.map((s) => s.date))]
-    .map((ds) => parseD(ds))
-    .filter(Boolean)
-    .sort((a, b) => a - b);
-  
+  const dates = [...new Set(sessions.map((s) => s.date))].map((ds) => parseD(ds)).filter(Boolean).sort((a, b) => a - b);
   if (dates.length === 0) return 0;
-  
   let longest = 1;
   let currentStreak = 1;
-  
   for (let i = 1; i < dates.length; i++) {
     const diff = (dates[i] - dates[i-1]) / (1000 * 60 * 60 * 24);
     if (diff === 1) {
@@ -628,11 +521,9 @@ function calcLongestStreak(sessions) {
       currentStreak = 1;
     }
   }
-  
   return longest;
 }
 
-/* ── PROJECT FIELD ── */
 function updateProjField() {
   const wrap = $("projWrap");
   if (!wrap) return;
@@ -640,11 +531,8 @@ function updateProjField() {
   const existingSelect = wrap.querySelector("select");
   const existingInput = wrap.querySelector("input");
   const wasVal = existingSelect ? existingSelect.value : (existingInput ? existingInput.value : "");
-  
   if (goals.length > 0) {
-    const opts = goals
-      .map((g) => `<option value="${escapeHtml(g.text)}">${g.text}</option>`)
-      .join("");
+    const opts = goals.map((g) => `<option value="${escapeHtml(g.text)}">${g.text}</option>`).join("");
     wrap.innerHTML = `<select id="projInp"><option value="—">— Pick a goal —</option>${opts}<option value="other">✏️ Other</option></select>
     <input id="projOther" placeholder="Enter project name…" style="margin-top:.4rem;display:none">`;
     wrap.querySelector("select").addEventListener("change", function () {
@@ -666,20 +554,16 @@ function getProjVal() {
   return document.querySelector("#projInp")?.value.trim() || "—";
 }
 
-/* ── TIMER CONTROL FUNCTIONS ── */
 function startSess() {
   if (timerInterval || isTimerRunning) {
     toast("Timer already running!", "info");
     return;
   }
-  
   sessionStartTime = new Date();
   elapsedSeconds = 0;
   isTimerRunning = true;
-  
   startTimerUI();
   saveTimerState();
-  
   toast("Session started! Stay focused 🚀", "info");
 }
 
@@ -688,25 +572,19 @@ async function stopSess() {
     toast("No active session to stop", "warn");
     return;
   }
-
-  const timerCard = $("tc2");
+  stopTickSound();
+  const timerCard = document.querySelector(".clock-card");
   if (timerCard) timerCard.classList.remove("running");
-
   const endTime = new Date();
   const startTime = sessionStartTime;
-
   const finalDuration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
-
   if (timerInterval) {
     clearInterval(timerInterval);
     timerInterval = null;
   }
-
   const category = $("catSel").value;
   let project = getProjVal();
   const task = $("taskInp").value.trim() || "No description";
-
-  // Handle "OTHER" project - auto-complete matching goal
   if (project === "other") {
     const otherInput = document.querySelector("#projOther");
     if (otherInput && otherInput.value.trim()) {
@@ -717,10 +595,8 @@ async function stopSess() {
       project = "—";
     }
   } else if (project && project !== "—") {
-    // Auto-complete goal if project matches a today's goal
     await completeGoalToday(project);
   }
-
   const sessionData = {
     date: fmtDate(startTime),
     start: fmt12(startTime),
@@ -731,11 +607,10 @@ async function stopSess() {
     task: task,
     ts: startTime.getTime()
   };
-
   await saveSession(sessionData);
-
-  // Reset UI
   $("tClk").textContent = "00:00:00";
+  updateAnalogClock(0);
+
   $("tClk").classList.remove("run", "stage-1", "stage-2", "stage-3", "stage-4");
   $("sDot").className = "sdot idle";
   $("sTxtEl").textContent = "Idle";
@@ -746,23 +621,17 @@ async function stopSess() {
   $("catSel").disabled = false;
   $("taskInp").disabled = false;
   $("taskInp").value = "";
-
   const pw = $("projWrap");
   if (pw) pw.querySelectorAll("input,select").forEach((el) => (el.disabled = false));
-
   elapsedSeconds = 0;
   sessionStartTime = null;
   isTimerRunning = false;
-
   updateProjField();
   localStorage.removeItem("activeTimer");
-
   await refreshDashboard();
-
   toast(`Session saved! ${fmtHM(finalDuration)} logged ✓`, "ok");
 }
 
-/* ── CATEGORY CLASSES ── */
 const CC = {
   "Deep Work": "cp-d",
   Learning: "cp-l",
@@ -786,42 +655,27 @@ function mkRow(s) {
   `;
 }
 
-/* ── RENDER RECENT SESSIONS (last 6) ── */
 function renderRecentSessions() {
   const recent = userSessions.slice(0, 6);
   const histCnt = $("histCnt");
   const histBody = $("histBody");
-  
   if (histCnt) {
     histCnt.textContent = `${userSessions.length} session${userSessions.length !== 1 ? "s" : ""}`;
   }
-  
   if (histBody) {
     if (recent.length) {
       histBody.innerHTML = recent.map(s => mkRow(s)).join("");
     } else {
-      histBody.innerHTML = `
-        <tr>
-          <td class="etd" colspan="7">
-            <i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>
-            No sessions yet. Start your first!
-          
-        </tr>
-      `;
+      histBody.innerHTML = `<tr><td class="etd" colspan="8"><i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>No sessions yet. Start your first!</td></tr>`;
     }
   }
 }
 
-/* ── DELETE SESSION (global) ── */
-window.delS = async (id) => {
-  await deleteSession(id);
-};
+window.delS = async (id) => { await deleteSession(id); };
 
-/* ── CLEAR ALL ── */
 async function clearAll() {
   if (!userSessions.length) return toast("No sessions to clear", "warn");
   if (!confirm("Clear all sessions?")) return;
-  
   for (const session of userSessions) {
     await deleteDoc(doc(db, "sessions", session.id));
   }
@@ -829,23 +683,18 @@ async function clearAll() {
   toast("All sessions cleared", "warn");
 }
 
-/* ── STATS ── */
 function renderStats() {
   const today = fmtDate(new Date());
   const todaySessions = userSessions.filter(s => s.date === today);
   const totalToday = todaySessions.reduce((a, s) => a + s.duration, 0);
-  const deepToday = todaySessions
-    .filter(s => s.category === "Deep Work")
-    .reduce((a, s) => a + s.duration, 0);
+  const deepToday = todaySessions.filter(s => s.category === "Deep Work").reduce((a, s) => a + s.duration, 0);
   const streak = calcStreak(userSessions);
-  
   $("sH").textContent = fmtHM(totalToday) || "0m";
   $("sS").textContent = todaySessions.length;
   $("sD").textContent = fmtHM(deepToday) || "0m";
   $("sSt").textContent = streak;
 }
 
-/* ── STREAK CARD (Modern Design) ── */
 function renderStreakCard() {
   const cur = calcStreak(userSessions);
   const best = calcLongestStreak(userSessions);
@@ -853,23 +702,17 @@ function renderStreakCard() {
   const nowM = today.getMonth(), nowY = today.getFullYear();
   const dim = new Date(nowY, nowM + 1, 0).getDate();
   let monthDays = 0;
-  
   for (let d = 1; d <= dim; d++) {
     const ds = fmtDate(new Date(nowY, nowM, d));
     if (userSessions.some(s => s.date === ds)) monthDays++;
   }
-  
   const daysWithSess = [...new Set(userSessions.map(s => s.date))];
   const goalDays = daysWithSess.filter(ds => isGoalHit(ds)).length;
-  
   const maxStreak = 30;
   const ringProgress = Math.min(cur / maxStreak, 1);
   const circumference = 2 * Math.PI * 38;
   const dashArray = ringProgress * circumference;
-  
-  let streakMessage = "";
-  let streakSubMessage = "";
-  
+  let streakMessage = "", streakSubMessage = "";
   if (cur === 0) {
     streakMessage = "Start your first session today! 🌱";
     streakSubMessage = "Complete a session to begin your streak";
@@ -889,7 +732,6 @@ function renderStreakCard() {
     streakMessage = `👑 ${cur} day streak - LEGENDARY!`;
     streakSubMessage = "Absolute focus mastery";
   }
-  
   let fireIcon = "🔥";
   if (cur === 0) fireIcon = "💤";
   else if (cur < 3) fireIcon = "🌱";
@@ -897,7 +739,6 @@ function renderStreakCard() {
   else if (cur < 14) fireIcon = "⚡";
   else if (cur < 21) fireIcon = "🏆";
   else fireIcon = "👑";
-  
   const streakCard = $("streakCard");
   if (streakCard) {
     streakCard.innerHTML = `
@@ -906,9 +747,9 @@ function renderStreakCard() {
           <svg class="streak-ring-svg" viewBox="0 0 100 100">
             <defs>
               <linearGradient id="streakGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#2152e0" />
-                <stop offset="50%" style="stop-color:#e0682b" />
-                <stop offset="100%" style="stop-color:#f59e0b" />
+                <stop offset="0%" style="stop-color:#0078ff" />
+                <stop offset="50%" style="stop-color:#ff6b35" />
+                <stop offset="100%" style="stop-color:#ffd166" />
               </linearGradient>
             </defs>
             <circle class="streak-ring-bg" cx="50" cy="50" r="38"></circle>
@@ -921,12 +762,10 @@ function renderStreakCard() {
             <span class="streak-ring-label">days</span>
           </div>
         </div>
-        
         <div class="streak-info">
           <div class="streak-message">${streakMessage}</div>
           <div class="streak-sub">${streakSubMessage}</div>
         </div>
-        
         <div class="streak-stats-grid">
           <div class="streak-stat-item">
             <div class="streak-stat-value">${best}</div>
@@ -936,12 +775,7 @@ function renderStreakCard() {
             <div class="streak-stat-value">${monthDays}</div>
             <div class="streak-stat-label">This Month</div>
           </div>
-          <div class="streak-stat-item">
-            <div class="streak-stat-value">${goalDays}</div>
-            <div class="streak-stat-label">Goal Days</div>
-          </div>
         </div>
-        
         <div class="streak-fire">
           <span class="streak-fire-icon">${fireIcon}</span>
           <span class="streak-fire-text">${cur > 0 ? `${cur} Day Streak` : "Start Today"}</span>
@@ -950,7 +784,6 @@ function renderStreakCard() {
       <div class="streak-strip" id="strkStrip"></div>
     `;
   }
-  
   const map = {};
   userSessions.forEach(s => { map[s.date] = (map[s.date] || 0) + s.duration; });
   const strip = $("strkStrip");
@@ -970,15 +803,11 @@ function renderStreakCard() {
   }
 }
 
-/* ── DAILY GOALS (Firestore Synced with Repeat Button) ── */
 async function renderGoals() {
-  // First, ensure today's goals are properly synced with master goals
   await syncTodayGoalsWithMaster();
-  
   const todayGoals = getTodayGoals();
   const total = todayGoals.length, done = todayGoals.filter(i => i.done).length;
   const badge = $("dmhBadge");
-  
   if (total === 0) {
     badge.className = "dmh-badge none";
     badge.textContent = "⏳ Add your goals";
@@ -992,18 +821,15 @@ async function renderGoals() {
     badge.className = "dmh-badge none";
     badge.textContent = `0/${total} done`;
   }
-  
   if (todayGoals.length === 0) {
     $("dmhList").innerHTML = `<div style="text-align:center;padding:.9rem;color:var(--tm);font-size:.8rem;font-family:var(--m)">No goals for today — add one below 👆</div>`;
     return;
   }
-  
   let html = "";
   for (let idx = 0; idx < todayGoals.length; idx++) {
     const goal = todayGoals[idx];
     const isRepeating = userGoals.some(g => g.text === goal.text && g.repeating === true);
     const escapedText = escapeHtml(goal.text);
-    
     html += `
       <div class="dmh-item${goal.done ? " done" : ""}" data-goal-text="${escapedText}">
         <div class="dmh-cb" onclick="toggleGoalCompletion(${idx})">${goal.done ? '<i class="fas fa-check" style="font-size:.6rem"></i>' : ""}</div>
@@ -1017,44 +843,31 @@ async function renderGoals() {
       </div>
     `;
   }
-  
   $("dmhList").innerHTML = html;
 }
 
-// Sync today's goals with master goals (add any missing master goals)
 async function syncTodayGoalsWithMaster() {
   let todayGoals = getTodayGoals();
   const todayGoalTexts = todayGoals.map(g => g.text);
-  
-  // Add any master goals that are not in today's goals
   for (const masterGoal of userGoals) {
     if (!todayGoalTexts.includes(masterGoal.text)) {
       todayGoals.push({ text: masterGoal.text, done: false });
     }
   }
-  
-  // Remove any goals that are no longer in master goals (deleted goals)
   const masterTexts = userGoals.map(g => g.text);
   todayGoals = todayGoals.filter(g => masterTexts.includes(g.text));
-  
   saveTodayGoals(todayGoals);
 }
 
-// Toggle goal completion for today (by index)
 async function toggleGoalCompletion(goalIndex) {
   const todayGoals = getTodayGoals();
   if (goalIndex >= todayGoals.length) return;
-  
   todayGoals[goalIndex].done = !todayGoals[goalIndex].done;
   saveTodayGoals(todayGoals);
-  
   if (todayGoals[goalIndex].done) {
     toast(`✓ Goal completed: "${todayGoals[goalIndex].text}"`, "ok");
   }
-  
   await refreshDashboard();
-  
-  // Check if all goals are done
   const updatedTodayGoals = getTodayGoals();
   const allDone = updatedTodayGoals.length > 0 && updatedTodayGoals.every(g => g.done);
   if (allDone) {
@@ -1062,11 +875,9 @@ async function toggleGoalCompletion(goalIndex) {
   }
 }
 
-// Toggle repeating for a goal by its text
 async function toggleRepeatingForGoalText(goalText) {
   const goal = userGoals.find(g => g.text === goalText);
   if (!goal) {
-    // If goal doesn't exist in master list, add it first
     await addGoalToFirestore(goalText);
     const newGoal = userGoals.find(g => g.text === goalText);
     if (newGoal) {
@@ -1077,13 +888,11 @@ async function toggleRepeatingForGoalText(goalText) {
   await toggleRepeatingGoal(goal.id);
 }
 
-// Delete goal by its text
 async function deleteGoalByText(goalText) {
   const goal = userGoals.find(g => g.text === goalText);
   if (goal) {
     await deleteGoalFromFirestore(goal.id);
   } else {
-    // Just remove from today's goals if it's only a today goal
     const todayGoals = getTodayGoals();
     const updatedTodayGoals = todayGoals.filter(g => g.text !== goalText);
     saveTodayGoals(updatedTodayGoals);
@@ -1092,19 +901,16 @@ async function deleteGoalByText(goalText) {
   }
 }
 
-// Add new goal
 async function addGoalItem() {
   const inp = $("dmhInp");
   const text = inp.value.trim();
   if (!text) return;
-  
   await addGoalToFirestore(text);
   inp.value = "";
   await refreshDashboard();
   updateProjField();
 }
 
-/* ── REFRESH DASHBOARD ── */
 async function refreshDashboard() {
   await loadSessions();
   await loadGoalsFromFirestore();
@@ -1116,9 +922,10 @@ async function refreshDashboard() {
   updateProjField();
 }
 
-/* ── LOGOUT FUNCTION ── */
 async function logout() {
   try {
+    stopTickSound();
+    if (audioCtx) await audioCtx.close();
     if (timerInterval) {
       clearInterval(timerInterval);
       timerInterval = null;
@@ -1133,28 +940,111 @@ async function logout() {
   }
 }
 
-/* ── AUTH LISTENER ── */
+/* ============================================
+   ANALOG CLOCK & TICK SOUND
+   ============================================ */
+let tickSoundEnabled = true;
+let tickIntervalId = null;
+let audioCtx = null;
+
+function updateAnalogClock(seconds = 0, useRealClock = false) {
+  let hrs, mins, secs;
+
+  if (useRealClock) {
+    const now = new Date();
+    hrs = now.getHours() % 12;
+    mins = now.getMinutes();
+    secs = now.getSeconds();
+  } else {
+    hrs = Math.floor(seconds / 3600) % 12;
+    mins = Math.floor((seconds % 3600) / 60);
+    secs = seconds % 60;
+  }
+
+  const hourDeg = (hrs * 30) + (mins * 0.5);
+  const minuteDeg = mins * 6;
+  const secondDeg = secs * 6;
+
+  const hourHand = document.getElementById("hourHand");
+  const minuteHand = document.getElementById("minuteHand");
+  const secondHand = document.getElementById("secondHand");
+
+  if (hourHand) hourHand.style.transform = `rotate(${hourDeg}deg)`;
+  if (minuteHand) minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
+  if (secondHand) secondHand.style.transform = `rotate(${secondDeg}deg)`;
+}
+
+function initAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTick() {
+  if (!tickSoundEnabled) return;
+  try {
+    const ctx = initAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.value = 0.05;
+    osc.type = 'sine';
+    gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.1);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.08);
+  } catch(e) { console.warn(e); }
+}
+
+function startTickSound() {
+  if (tickIntervalId) clearInterval(tickIntervalId);
+  tickIntervalId = setInterval(() => {
+    if (isTimerRunning && sessionStartTime && tickSoundEnabled) playTick();
+  }, 1000);
+}
+
+function stopTickSound() {
+  if (tickIntervalId) {
+    clearInterval(tickIntervalId);
+    tickIntervalId = null;
+  }
+}
+
+window.toggleTickSound = function() {
+  tickSoundEnabled = !tickSoundEnabled;
+  const btn = document.getElementById('toggleTickBtn');
+  if (btn) {
+    btn.innerHTML = tickSoundEnabled ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-volume-mute"></i>';
+    toast(tickSoundEnabled ? 'Tick sound on 🔔' : 'Tick sound off 🔇', 'info');
+  }
+};
+
+/* ============================================
+   AUTH LISTENER
+   ============================================ */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
     return;
   }
-  
   currentUser = user;
   await loadUserProfile();
   await loadGoalsFromFirestore();
   await refreshDashboard();
   updateProjField();
   await checkAndResetDailyGoals();
-  
   const timerRestored = loadTimerState();
   if (!timerRestored) {
     $("tClk").textContent = "00:00:00";
     $("tSt").textContent = "--:--";
     $("tDt").textContent = "--";
   }
-  
-  setInterval(initHdr, 60000);
+  setInterval(() => {
+    initHdr();
+    if (!isTimerRunning) updateAnalogClock(0);
+  }, 60000);
+  if (!isTimerRunning) updateAnalogClock(0);
 });
 
 /* ── EXPOSE GLOBAL FUNCTIONS ── */
@@ -1172,3 +1062,4 @@ window.toggleRepeatingForGoalText = toggleRepeatingForGoalText;
 window.toggleRepeatingGoal = toggleRepeatingGoal;
 window.logout = logout;
 window.updateTimerDisplay = updateTimerDisplay;
+window.toggleTickSound = toggleTickSound;

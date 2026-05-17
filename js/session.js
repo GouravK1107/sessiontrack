@@ -15,6 +15,7 @@ let currentUser = null;
 let allSessions = [];
 let activeFilter = "all";
 let searchQuery = "";
+let searchDebounceTimer = null;
 
 // Points per hour for each category
 const POINTS_PER_HOUR = {
@@ -25,7 +26,7 @@ const POINTS_PER_HOUR = {
 };
 
 /* ── UTILS ── */
-const $ = (id) => document.getElementById(id);
+const getEl = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, "0");
 
 function fmtDate(d) {
@@ -72,12 +73,59 @@ function getSessionPoints(session) {
   return Math.round(hours * pointsPerHour);
 }
 
+/* ── HELPER FUNCTIONS FOR STATS ── */
+function getTotalDuration(sessions) {
+  return sessions.reduce((a, s) => a + s.duration, 0);
+}
+
+function getTotalPoints(sessions) {
+  return sessions.reduce((sum, s) => sum + getSessionPoints(s), 0);
+}
+
+function getBestCategory(sessions) {
+  const breakdown = {};
+  sessions.forEach(s => {
+    breakdown[s.category] = (breakdown[s.category] || 0) + s.duration;
+  });
+  let best = null;
+  let max = 0;
+  for (const [cat, secs] of Object.entries(breakdown)) {
+    if (secs > max) {
+      max = secs;
+      best = cat;
+    }
+  }
+  return best;
+}
+
+function getAverageDuration(sessions) {
+  if (sessions.length === 0) return 0;
+  return getTotalDuration(sessions) / sessions.length;
+}
+
+function updateSummaryStats() {
+  const totalSessions = allSessions.length;
+  const totalTime = getTotalDuration(allSessions);
+  const totalPoints = getTotalPoints(allSessions);
+  const bestCategory = getBestCategory(allSessions);
+  
+  const statTotalSessions = getEl("statTotalSessions");
+  const statTotalTime = getEl("statTotalTime");
+  const statTotalPoints = getEl("statTotalPoints");
+  const statBestCategory = getEl("statBestCategory");
+  
+  if (statTotalSessions) statTotalSessions.textContent = totalSessions;
+  if (statTotalTime) statTotalTime.textContent = fmtHM(totalTime);
+  if (statTotalPoints) statTotalPoints.textContent = totalPoints;
+  if (statBestCategory) statBestCategory.textContent = bestCategory ? (bestCategory === "Deep Work" ? "🧠 Deep" : bestCategory === "Learning" ? "📚 Learning" : bestCategory === "Normal Work" ? "💼 Normal" : "😴 Low") : "—";
+}
+
 /* ── DARK MODE ── */
 const getDk = () => localStorage.getItem("st_dark") === "1";
 const putDk = (v) => localStorage.setItem("st_dark", v ? "1" : "0");
 function applyDk(on) {
   document.documentElement.setAttribute("data-theme", on ? "dark" : "light");
-  const i = $("dIco"), l = $("dLbl");
+  const i = getEl("dIco"), l = getEl("dLbl");
   if (i) i.className = on ? "fas fa-sun" : "fas fa-moon";
   if (l) l.textContent = on ? "Light" : "Dark";
 }
@@ -88,9 +136,8 @@ function toggleDark() {
 }
 applyDk(getDk());
 
-/* ── TOAST ── */
 function toast(msg, type = "info") {
-  const t = $("toast");
+  const t = getEl("toast");
   t.innerHTML = `<i class="fas fa-${type === "ok" ? "check-circle" : type === "warn" ? "exclamation-triangle" : "info-circle"}"></i> ${msg}`;
   t.className = `tst show ${type}`;
   clearTimeout(t._t);
@@ -99,17 +146,19 @@ function toast(msg, type = "info") {
   }, 3200);
 }
 
-/* ── SIDEBAR ── */
 function toggleSb() {
-  $("sb").classList.toggle("open");
-  $("sbo").classList.toggle("on");
+  const sb = getEl("sb");
+  const sbo = getEl("sbo");
+  if (sb) sb.classList.toggle("open");
+  if (sbo) sbo.classList.toggle("on");
 }
 function closeSb() {
-  $("sb").classList.remove("open");
-  $("sbo").classList.remove("on");
+  const sb = getEl("sb");
+  const sbo = getEl("sbo");
+  if (sb) sb.classList.remove("open");
+  if (sbo) sbo.classList.remove("on");
 }
 
-/* ── LOAD USER PROFILE ── */
 async function loadUserProfile() {
   if (!currentUser) return;
   
@@ -124,18 +173,23 @@ async function loadUserProfile() {
       const color = data.color || "linear-gradient(135deg,#2152e0,#b84a8c)";
       const avatarInitials = initials(name);
       
-      if ($("sbAva")) {
-        $("sbAva").textContent = avatarInitials;
-        $("sbAva").style.background = color;
+      const sbAva = getEl("sbAva");
+      if (sbAva) {
+        sbAva.textContent = avatarInitials;
+        sbAva.style.background = color;
       }
-      if ($("sbName")) $("sbName").textContent = name;
-      if ($("sbRole")) $("sbRole").textContent = role;
+      const sbName = getEl("sbName");
+      if (sbName) sbName.textContent = name;
+      const sbRole = getEl("sbRole");
+      if (sbRole) sbRole.textContent = role;
       
       initHdr(name);
     } else {
       const defaultName = currentUser.email?.split('@')[0] || "User";
-      if ($("sbAva")) $("sbAva").textContent = initials(defaultName);
-      if ($("sbName")) $("sbName").textContent = defaultName;
+      const sbAva = getEl("sbAva");
+      if (sbAva) sbAva.textContent = initials(defaultName);
+      const sbName = getEl("sbName");
+      if (sbName) sbName.textContent = defaultName;
       initHdr(defaultName);
     }
   } catch (error) {
@@ -153,7 +207,7 @@ function initials(name) {
 
 function initHdr(name = "User") {
   const n = new Date();
-  const hd = $("hdrDate");
+  const hd = getEl("hdrDate");
   if (hd) {
     hd.textContent = n.toLocaleDateString("en-IN", {
       weekday: "short",
@@ -164,13 +218,15 @@ function initHdr(name = "User") {
   }
   const h = n.getHours();
   const firstName = name.split(" ")[0];
-  const gt = $("greetTxt");
-  if (gt) {
-    gt.textContent = `${h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"}, ${firstName} 👋`;
+  const greetTime = `${h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"}, ${firstName}`;
+  
+  // Update subtitle only, keep page title as "Sessions 📋"
+  const sub = getEl("greetSub");
+  if (sub) {
+    sub.textContent = `${greetTime} · Browse, filter and manage your logged sessions`;
   }
 }
 
-/* ── LOAD SESSIONS FROM FIREBASE ── */
 async function loadSessions() {
   if (!currentUser) return [];
   
@@ -186,6 +242,7 @@ async function loadSessions() {
       id: doc.id,
       ...doc.data()
     }));
+    updateSummaryStats();
     return allSessions;
   } catch (error) {
     console.error("Error loading sessions:", error);
@@ -194,7 +251,6 @@ async function loadSessions() {
   }
 }
 
-/* ── DELETE SESSION ── */
 async function deleteSession(sessionId) {
   if (!currentUser) return;
   
@@ -217,7 +273,7 @@ const CC = {
   "Low Productivity": "cp-w",
 };
 
-/* ── RENDER SESSION ROW (with Points column) ── */
+/* ── RENDER SESSION ROW ── */
 function mkRow(s, withProj = true) {
   const points = getSessionPoints(s);
   return `<tr>
@@ -225,12 +281,12 @@ function mkRow(s, withProj = true) {
     <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.start)}
     <td style="font-family:var(--m);font-size:.72rem">${escapeHtml(s.end)}
     <td style="font-family:var(--m);font-weight:500;color:var(--th)">${fmtHM(s.duration)}
-    <td style="font-family:var(--m);font-weight:600;color:var(--p)">${points} pts
+    <td><span class="points-badge">${points} pts</span>
     <td><span class="cp ${CC[s.category] || "cp-n"}">${escapeHtml(s.category)}</span>
     ${withProj ? `<td style="font-size:.74rem;color:var(--tm)">${escapeHtml(s.project && s.project !== "—" ? s.project : "—")}` : ""}
-    <td style="font-size:.74rem;max-width:160px;white-space:normal;color:var(--tm)">${escapeHtml(s.task)}
-    <td><button class="delbtn" onclick="window.delRow('${s.id}')"><i class="fas fa-trash"></i></button>
-  </tr>`;
+    <td style="font-size:.74rem;max-width:160px;white-space:normal;color:var(--tm)" title="${escapeHtml(s.task)}">${escapeHtml(s.task.length > 40 ? s.task.substring(0, 40) + "..." : s.task)}
+    <td><button class="delbtn" onclick="window.delRow('${s.id}')" aria-label="Delete session"><i class="fas fa-trash"></i></button>
+  </td>`;
 }
 
 /* ── FILTER AND SEARCH SESSIONS ── */
@@ -244,7 +300,7 @@ function getFilteredSessions() {
   if (searchQuery) {
     const queryLower = searchQuery.toLowerCase();
     filtered = filtered.filter(s =>
-      (s.task + s.category + (s.project || "") + s.date)
+      (s.task + s.category + (s.project || "") + s.date + fmtHM(s.duration))
         .toLowerCase()
         .includes(queryLower)
     );
@@ -253,39 +309,78 @@ function getFilteredSessions() {
   return filtered;
 }
 
-/* ── RENDER SESSIONS TABLE ── */
-function renderSessions() {
-  const filtered = getFilteredSessions();
-  const totalSeconds = filtered.reduce((a, s) => a + s.duration, 0);
-  const totalPoints = filtered.reduce((sum, s) => sum + getSessionPoints(s), 0);
+/* ── RENDER EMPTY STATE ── */
+function renderEmptyState(type) {
+  const sessBody = getEl("sessBody");
+  if (!sessBody) return;
   
-  $("sessCount").textContent = 
-    `${filtered.length} session${filtered.length !== 1 ? "s" : ""} · ${totalPoints} pts · ${fmtHM(totalSeconds)} total`;
-  $("sessSub").textContent = `${allSessions.length} sessions recorded`;
-  
-  if (filtered.length) {
-    $("sessBody").innerHTML = filtered.map(s => mkRow(s, true)).join("");
+  if (type === "no-sessions") {
+    sessBody.innerHTML = `<tr><td class="etd" colspan="9">
+      <i class="fas fa-inbox"></i>
+      <p>No sessions logged yet</p>
+      <small>Start a focus session from the Dashboard to build your history.</small>
+      <button class="cbtn" style="margin-top:0.75rem;" onclick="window.location.href='dashboard.html'">Go to Dashboard →</button>
+    </td></tr>`;
   } else {
-    $("sessBody").innerHTML = `<tr><td class="etd" colspan="8">
-      <i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>
-      ${searchQuery || activeFilter !== "all" ? "No matches found" : "No sessions yet — start one from Dashboard!"}
-    </tr>`;
+    sessBody.innerHTML = `<tr><td class="etd" colspan="9">
+      <i class="fas fa-filter"></i>
+      <p>No matching sessions</p>
+      <small>Try clearing the search or changing the filter.</small>
+      <button class="cbtn" style="margin-top:0.75rem;" onclick="clearSearch(); setFilter('all', document.querySelector('.sf-btn.on'));">Clear Filters →</button>
+    </td></tr>`;
   }
 }
 
-/* ── SEARCH HANDLER ── */
+/* ── RENDER SESSIONS TABLE ── */
+function renderSessions() {
+  const filtered = getFilteredSessions();
+  const totalSeconds = getTotalDuration(filtered);
+  const totalPoints = getTotalPoints(filtered);
+  
+  const sessCount = getEl("sessCount");
+  if (sessCount) {
+    sessCount.textContent = `${filtered.length} session${filtered.length !== 1 ? "s" : ""} · ${totalPoints} pts · ${fmtHM(totalSeconds)}`;
+  }
+  
+  const sessSub = getEl("sessSub");
+  if (sessSub) {
+    sessSub.textContent = `${allSessions.length} total session${allSessions.length !== 1 ? "s" : ""} recorded`;
+  }
+  
+  const sessBody = getEl("sessBody");
+  if (!sessBody) return;
+  
+  if (filtered.length) {
+    sessBody.innerHTML = filtered.map(s => mkRow(s, true)).join("");
+    // Add entrance animation to rows
+    const rows = sessBody.querySelectorAll("tr");
+    rows.forEach((row, idx) => {
+      row.style.animation = `fadeUp 0.3s var(--ease-spring) ${idx * 0.02}s both`;
+    });
+  } else if (allSessions.length === 0) {
+    renderEmptyState("no-sessions");
+  } else {
+    renderEmptyState("no-matches");
+  }
+}
+
+/* ── SEARCH HANDLER (Debounced) ── */
 function onSearch(value) {
-  searchQuery = value.toLowerCase().trim();
-  renderSessions();
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    searchQuery = value.toLowerCase().trim();
+    renderSessions();
+  }, 200);
 }
 
 /* ── CLEAR SEARCH ── */
 function clearSearch() {
-  const searchInput = $("srchInp");
+  const searchInput = getEl("srchInp");
   if (searchInput) {
     searchInput.value = "";
     searchQuery = "";
     renderSessions();
+    searchInput.focus();
   }
 }
 
@@ -300,13 +395,21 @@ function setFilter(filter, btn) {
 /* ── DELETE ROW (GLOBAL) ── */
 window.delRow = async (id) => {
   if (!confirm("Delete this session?")) return;
+  
+  // Add fade-out animation
+  const row = document.querySelector(`button[onclick="window.delRow('${id}')"]`)?.closest("tr");
+  if (row) {
+    row.style.transition = "opacity var(--dur-med) var(--ease-out)";
+    row.style.opacity = "0";
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
   await deleteSession(id);
 };
 
 /* ── CLEAR ALL SESSIONS ── */
 async function clearAll() {
   if (!allSessions.length) return toast("No sessions to clear", "warn");
-  if (!confirm("Delete ALL sessions? This cannot be undone.")) return;
+  if (!confirm("⚠️ Delete ALL sessions? This cannot be undone.")) return;
   
   for (const session of allSessions) {
     await deleteDoc(doc(db, "sessions", session.id));
@@ -315,6 +418,18 @@ async function clearAll() {
   await loadSessions();
   renderSessions();
   toast("All sessions cleared", "warn");
+}
+
+/* ── ESCAPE KEY HANDLER ── */
+function setupEscapeHandler() {
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const searchInput = getEl("srchInp");
+      if (searchInput && searchInput.value) {
+        clearSearch();
+      }
+    }
+  });
 }
 
 /* ── AUTH LISTENER ── */
@@ -328,8 +443,9 @@ onAuthStateChanged(auth, async (user) => {
   await loadUserProfile();
   await loadSessions();
   renderSessions();
+  setupEscapeHandler();
   
-  setInterval(initHdr, 60000);
+  setInterval(() => initHdr(), 60000);
 });
 
 /* ── LOGOUT FUNCTION ── */
@@ -353,5 +469,5 @@ window.clearAll = clearAll;
 window.onSearch = onSearch;
 window.clearSearch = clearSearch;
 window.setFilter = setFilter;
-window.delRow = delRow;
+window.delRow = window.delRow;
 window.logout = logout;

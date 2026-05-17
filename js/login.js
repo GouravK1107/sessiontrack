@@ -30,22 +30,105 @@ import {
   });
 })();
 
-/* ── Eye toggle ── */
-document.getElementById("eyeBtn").addEventListener("click", function () {
-  const inp = document.getElementById("password");
-  const icon = document.getElementById("eyeIcon");
-  if (inp.type === "password") {
-    inp.type = "text";
-    icon.className = "fas fa-eye-slash";
-  } else {
-    inp.type = "password";
-    icon.className = "fas fa-eye";
+/* ── CHAOS ANIMATION: Ticks, Time Tokens, Particles ── */
+function initLoginChaosAnimation() {
+  const tickField = document.getElementById("tickField");
+  const timeRain = document.getElementById("timeRain");
+  const focusParticles = document.getElementById("focusParticles");
+  
+  if (!tickField && !timeRain && !focusParticles) return;
+  
+  // Generate tick marks (36 ticks)
+  if (tickField) {
+    for (let i = 0; i < 36; i++) {
+      const tick = document.createElement("span");
+      tick.className = "tick";
+      const left = Math.random() * 100;
+      const top = Math.random() * 100;
+      const duration = 2 + Math.random() * 4;
+      const delay = Math.random() * 5;
+      const height = 8 + Math.random() * 12;
+      tick.style.left = left + "%";
+      tick.style.top = top + "%";
+      tick.style.animationDuration = duration + "s";
+      tick.style.animationDelay = delay + "s";
+      tick.style.height = height + "px";
+      tick.style.opacity = 0.2 + Math.random() * 0.4;
+      tick.style.transform = `rotate(${Math.random() * 360}deg)`;
+      tickField.appendChild(tick);
+    }
   }
-});
+  
+  // Generate time tokens (18 tokens)
+  if (timeRain) {
+    const tokens = [
+      "25:00", "05:00", "90m", "Deep Work", "+12pts", "Focus", 
+      "Flow", "Streak", "2h 15m", "Pomodoro", "Analytics", 
+      "🔥 9d", "🧠 85%", "⚡ 4h", "🎯 Done", "📊 Chart", 
+      "✨ Focus", "🚀 Boost"
+    ];
+    for (let i = 0; i < 24; i++) {
+      const token = document.createElement("span");
+      token.className = "time-token";
+      const randomToken = tokens[Math.floor(Math.random() * tokens.length)];
+      token.textContent = randomToken;
+      const left = Math.random() * 100;
+      const duration = 5 + Math.random() * 6;
+      const delay = Math.random() * 8;
+      const fontSize = 0.6 + Math.random() * 0.4;
+      token.style.left = left + "%";
+      token.style.animationDuration = duration + "s";
+      token.style.animationDelay = delay + "s";
+      token.style.fontSize = fontSize + "rem";
+      token.style.opacity = 0.3 + Math.random() * 0.4;
+      timeRain.appendChild(token);
+    }
+  }
+  
+  // Generate focus particles (45 particles)
+  if (focusParticles) {
+    for (let i = 0; i < 45; i++) {
+      const particle = document.createElement("span");
+      particle.className = "particle";
+      const left = Math.random() * 100;
+      const top = Math.random() * 100;
+      const duration = 3 + Math.random() * 4;
+      const delay = Math.random() * 6;
+      const size = 2 + Math.random() * 4;
+      particle.style.left = left + "%";
+      particle.style.top = top + "%";
+      particle.style.animationDuration = duration + "s";
+      particle.style.animationDelay = delay + "s";
+      particle.style.width = size + "px";
+      particle.style.height = size + "px";
+      particle.style.opacity = 0.2 + Math.random() * 0.5;
+      focusParticles.appendChild(particle);
+    }
+  }
+}
+
+/* ── Eye toggle ── */
+const eyeBtn = document.getElementById("eyeBtn");
+if (eyeBtn) {
+  eyeBtn.addEventListener("click", function () {
+    const inp = document.getElementById("password");
+    const icon = document.getElementById("eyeIcon");
+    if (inp && icon) {
+      if (inp.type === "password") {
+        inp.type = "text";
+        icon.className = "fas fa-eye-slash";
+      } else {
+        inp.type = "password";
+        icon.className = "fas fa-eye";
+      }
+    }
+  });
+}
 
 /* ── Toast ── */
 function showToast(msg, type) {
   const t = document.getElementById("toast");
+  if (!t) return;
   t.innerHTML = `<i class="fas fa-${type === "success" ? "check-circle" : "exclamation-circle"}"></i> ${msg}`;
   t.className = `toast show ${type}`;
   setTimeout(() => {
@@ -54,14 +137,22 @@ function showToast(msg, type) {
 }
 
 /* ── Clear errors on typing ── */
-document.getElementById("email").addEventListener("input", function () {
-  this.classList.remove("error-field");
-  document.getElementById("emailErr").classList.remove("show");
-});
-document.getElementById("password").addEventListener("input", function () {
-  this.classList.remove("error-field");
-  document.getElementById("pwdErr").classList.remove("show");
-});
+const emailInput = document.getElementById("email");
+const pwdInput = document.getElementById("password");
+if (emailInput) {
+  emailInput.addEventListener("input", function () {
+    this.classList.remove("error-field");
+    const emailErr = document.getElementById("emailErr");
+    if (emailErr) emailErr.classList.remove("show");
+  });
+}
+if (pwdInput) {
+  pwdInput.addEventListener("input", function () {
+    this.classList.remove("error-field");
+    const pwdErr = document.getElementById("pwdErr");
+    if (pwdErr) pwdErr.classList.remove("show");
+  });
+}
 
 /* ── Forgot Password Modal ── */
 function showResetModal() {
@@ -98,24 +189,28 @@ function closeResetModal() {
 }
 
 async function sendResetEmail() {
-    const email = document.getElementById("resetEmail").value;
+    const email = document.getElementById("resetEmail");
+    if (!email) return;
+    const emailValue = email.value;
     const btn = document.getElementById("resetBtn");
     
-    if (!email) {
+    if (!emailValue) {
         showToast("Please enter your email address", "error");
         return;
     }
     
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
         showToast("Please enter a valid email address", "error");
         return;
     }
     
-    btn.textContent = "Sending...";
-    btn.disabled = true;
+    if (btn) {
+        btn.textContent = "Sending...";
+        btn.disabled = true;
+    }
     
     try {
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(auth, emailValue);
         showToast("Password reset email sent! Check your Spam section in email 📧", "success");
         closeResetModal();
     } catch (error) {
@@ -133,8 +228,10 @@ async function sendResetEmail() {
         }
         showToast(errorMsg, "error");
     } finally {
-        btn.textContent = "Send Reset Link";
-        btn.disabled = false;
+        if (btn) {
+            btn.textContent = "Send Reset Link";
+            btn.disabled = false;
+        }
     }
 }
 
@@ -150,21 +247,25 @@ async function handleLogin() {
   const rememberCheckbox = document.getElementById("remember");
   let valid = true;
 
+  if (!email || !pwd || !btn) return;
+
   // Reset errors
   email.classList.remove("error-field");
   pwd.classList.remove("error-field");
-  document.getElementById("emailErr").classList.remove("show");
-  document.getElementById("pwdErr").classList.remove("show");
+  const emailErr = document.getElementById("emailErr");
+  const pwdErr = document.getElementById("pwdErr");
+  if (emailErr) emailErr.classList.remove("show");
+  if (pwdErr) pwdErr.classList.remove("show");
 
   // Validation
   if (!email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
     email.classList.add("error-field");
-    document.getElementById("emailErr").classList.add("show");
+    if (emailErr) emailErr.classList.add("show");
     valid = false;
   }
   if (!pwd.value.trim()) {
     pwd.classList.add("error-field");
-    document.getElementById("pwdErr").classList.add("show");
+    if (pwdErr) pwdErr.classList.add("show");
     valid = false;
   }
   if (!valid) return;
@@ -179,11 +280,8 @@ async function handleLogin() {
     
     // Handle "Remember me" - set session persistence
     if (rememberCheckbox && rememberCheckbox.checked) {
-      // Keep user logged in (default is already persistent)
-      // You can also set localStorage flag if needed
       localStorage.setItem("rememberMe", "true");
     } else {
-      // Session only - clear when browser closes
       localStorage.setItem("rememberMe", "false");
     }
     
@@ -228,9 +326,14 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-/* Enter key */
+/* ── Enter key ── */
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter") handleLogin();
+});
+
+/* ── Initialize Chaos Animation ── */
+document.addEventListener("DOMContentLoaded", () => {
+  initLoginChaosAnimation();
 });
 
 // Make functions available globally

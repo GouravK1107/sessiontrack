@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>Dashboard · SessionTrack</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,58 +14,95 @@
 <body>
 <div class="app">
   <div class="sbo" id="sbo" onclick="closeSb()"></div>
-<nav class="sb" id="sb">
-<div class="sb-top"><div class="sb-badge">ST</div><div><div class="sb-bn">SessionTrack</div><div class="sb-bt">focus analytics</div></div></div>
-<div class="sb-nav">
-<div class="sb-sec">Main</div>
-<a class="ni on" href="dashboard.html"><i class="fas fa-th-large"></i>Dashboard</a>
-<a class="ni" href="sessions.html"><i class="fas fa-stopwatch"></i>Sessions</a>
-<a class="ni" href="analytics.html"><i class="fas fa-chart-bar"></i>Analytics</a>
-<div class="sb-sec">Community</div>
-<a class="ni" href="leaderboard.html"><i class="fas fa-trophy"></i>Leaderboard</a>
-<div class="sb-sec">Account</div>
-<a class="ni" href="dashboard.html"><i class="fas fa-home"></i>Home</a>
-<button class="ni logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i>Logout</button>
-</div>
-<div class="sb-foot"><a class="sb-user" href="profile.html"><div class="sb-av" id="sbAva">GK</div><div><div class="sb-un" id="sbName">Gourav K</div><div class="sb-ur" id="sbRole">BCA · Backend Dev</div></div><i class="fas fa-external-link-alt" style="font-size:.6rem;color:var(--tm);margin-left:auto"></i></a></div>
-</nav>
+  
+  <!-- SIDEBAR -->
+  <nav class="sb" id="sb">
+    <div class="sb-top">
+      <div class="sb-badge">ST</div>
+      <div>
+        <div class="sb-bn">SessionTrack</div>
+        <div class="sb-bt">focus analytics</div>
+      </div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-sec">Main</div>
+      <a class="ni on" href="dashboard.html"><i class="fas fa-th-large"></i>Dashboard</a>
+      <a class="ni" href="sessions.html"><i class="fas fa-stopwatch"></i>Sessions</a>
+      <a class="ni" href="analytics.html"><i class="fas fa-chart-bar"></i>Analytics</a>
+      <div class="sb-sec">Community</div>
+      <a class="ni" href="leaderboard.html"><i class="fas fa-trophy"></i>Leaderboard</a>
+      <div class="sb-sec">Account</div>
+      <a class="ni" href="dashboard.html"><i class="fas fa-home"></i>Home</a>
+      <button class="ni logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i>Logout</button>
+    </div>
+    <div class="sb-foot">
+      <a class="sb-user" href="profile.html">
+        <div class="sb-av" id="sbAva">GK</div>
+        <div>
+          <div class="sb-un" id="sbName">Gourav K</div>
+          <div class="sb-ur" id="sbRole">BCA · Backend Dev</div>
+        </div>
+        <i class="fas fa-external-link-alt" style="font-size:.6rem;color:var(--tm);margin-left:auto"></i>
+      </a>
+    </div>
+  </nav>
 
   <div class="main">
+    <!-- HEADER -->
     <header class="hdr">
       <button class="hbtn" onclick="toggleSb()"><i class="fas fa-bars"></i></button>
-      <div class="hg"><h2 id="greetTxt">Welcome back 👋</h2><p id="greetSub">Ready for deep work?</p></div>
-      
+      <div class="hg">
+        <h2 id="greetTxt">Welcome back 👋</h2>
+        <p id="greetSub">Ready for deep work?</p>
+      </div>
       <div class="ha">
         <div class="hdate" id="hdrDate"></div>
         <button class="dbtn" onclick="toggleDark()"><i class="fas fa-moon" id="dIco"></i><span id="dLbl">Dark</span></button>
         <a href="profile.html" class="ibtn" title="Profile"><i class="fas fa-user"></i></a>
       </div>
     </header>
+
     <div class="pb">
       <!-- STAT CARDS -->
       <div class="sr">
-        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-clock"></i></div><span class="strd tup">&#x1F550;</span></div><div class="sv2" id="sH">0m</div><div class="sl">Total today</div></div>
-        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-play-circle"></i></div><span class="strd tneu">&mdash;</span></div><div class="sv2" id="sS">0</div><div class="sl">Sessions today</div></div>
-        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-brain"></i></div><span class="strd tup">&#x1F9E0;</span></div><div class="sv2" id="sD">0m</div><div class="sl">Deep work today</div></div>
-        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-fire"></i></div><span class="strd tup">&#x1F525;</span></div><div class="sv2" id="sSt">0</div><div class="sl">Day streak</div></div>
+        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-clock"></i></div><span class="strd tup">⚡</span></div><div class="sv2" id="sH">0m</div><div class="sl">Total today</div></div>
+        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-play-circle"></i></div><span class="strd tneu">🎯</span></div><div class="sv2" id="sS">0</div><div class="sl">Sessions today</div></div>
+        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-brain"></i></div><span class="strd tup">🧠</span></div><div class="sv2" id="sD">0m</div><div class="sl">Deep work today</div></div>
+        <div class="sc"><div class="st"><div class="sico"><i class="fas fa-fire"></i></div><span class="strd tup">🔥</span></div><div class="sv2" id="sSt">0</div><div class="sl">Day streak</div></div>
       </div>
 
-      <!-- TIMER + HISTORY -->
+      <!-- MAIN GRID: TIMER + HISTORY -->
       <div class="tg">
-        <div class="card tc2">
-          <!-- timer content stays the same -->
-          <div class="tsr">
-            <div><div class="ct">Work Session</div><div class="cs">Track your focus time</div></div>
-            <div class="stxt"><span class="sdot idle" id="sDot"></span><span id="sTxtEl">Idle</span></div>
-          </div>
-          <div class="tdisp">
-            <div class="tclk" id="tClk">00:00:00</div>
-            <div class="tmeta">
-              <div><div class="tv" id="tSt">--:--</div><div class="tl">Start</div></div>
-              <div><div class="tv" id="tDt">--</div><div class="tl">Date</div></div>
+        <!-- ANALOG CLOCK CARD -->
+        <div class="card clock-card">
+          <div class="clock-header">
+            <div class="clock-title"><i class="fas fa-hourglass-half"></i> Focus Clock</div>
+            <div class="sound-controls">
+              <button id="toggleTickBtn" class="icon-btn" onclick="toggleTickSound()" title="Toggle ticking sound"><i class="fas fa-volume-up"></i></button>
             </div>
           </div>
-          <!-- rest of timer content -->
+          
+          <!-- ANALOG CLOCK FACE -->
+          <div class="analog-clock">
+            <div class="clock-face">
+              <div class="hand hour-hand" id="hourHand"></div>
+              <div class="hand minute-hand" id="minuteHand"></div>
+              <div class="hand second-hand" id="secondHand"></div>
+              <div class="center-dot"></div>
+              <div class="mark mark-12"></div><div class="mark mark-1"></div><div class="mark mark-2"></div>
+              <div class="mark mark-3"></div><div class="mark mark-4"></div><div class="mark mark-5"></div>
+              <div class="mark mark-6"></div><div class="mark mark-7"></div><div class="mark mark-8"></div>
+              <div class="mark mark-9"></div><div class="mark mark-10"></div><div class="mark mark-11"></div>
+            </div>
+            <div class="digital-time" id="tClk">00:00:00</div>
+            <div class="session-meta">
+              <div><span class="tv" id="tSt">--:--</span><span class="tl">Start</span></div>
+              <div><span class="tv" id="tDt">--</span><span class="tl">Date</span></div>
+              <div class="stxt"><span class="sdot idle" id="sDot"></span><span id="sTxtEl">Idle</span></div>
+            </div>
+          </div>
+          <br>
+          <!-- TIMER FORM -->
           <div class="tform">
             <div class="f2">
               <div class="ff"><label>Category</label>
@@ -78,6 +115,7 @@
               </div>
               <div class="ff"><label>Project</label><div id="projWrap"><input id="projInp" placeholder="e.g. Todo API"></div></div>
             </div>
+            <br>
             <div class="ff"><label>Task description</label><textarea id="taskInp" rows="2" placeholder="What are you working on?"></textarea></div>
           </div>
           <div class="tbtns">
@@ -86,73 +124,47 @@
           </div>
         </div>
         
-        <!-- SESSION HISTORY - IMPROVED VERSION -->
+        <!-- SESSION HISTORY -->
         <div class="card hc">
           <div class="ch">
-            <div>
-              <div class="ct">Session History</div>
-              <div class="cs" id="histCnt">0 sessions</div>
-            </div>
+            <div><div class="ct">Session History</div><div class="cs" id="histCnt">0 sessions</div></div>
             <button class="cbtn" onclick="clearAll()">Clear all</button>
           </div>
           <div class="htw tw">
             <table>
               <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Start</th>
-                  <th>End</th>
-                  <th>Duration</th>
-                  <th>Points</th>
-                  <th>Category</th>
-                  <th>Task</th>
-                  <th></th>
-                </tr>
+                <tr><th>Date</th><th>Start</th><th>End</th><th>Duration</th><th>Points</th><th>Category</th><th>Task</th><th></th></tr>
               </thead>
               <tbody id="histBody">
-                <tr>
-                  <td class="etd" colspan="8">
-                    <i class="fas fa-inbox" style="font-size:1.1rem;opacity:.22;display:block;margin-bottom:.3rem"></i>
-                    No sessions yet. Start your first!
-                  </td>
-                </tr>
+                <tr><td class="etd" colspan="8"><i class="fas fa-inbox"></i> No sessions yet. Start your first!</td></tr>
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- DAILY MINIMUM HIT -->
-      <div class="card dmh-card">
-        <div class="dmh-header">
-          <div><div class="dmh-card-title">Daily Minimum Hit</div><div class="dmh-card-sub">Check off all goals &rarr; today gets &#x2605; on the calendar</div></div>
-          <span class="dmh-badge none" id="dmhBadge">&#x23F3; Add your goals</span>
+      <!-- TWO COLUMN: GOALS + STREAK -->
+      <div class="two-columns">
+        <!-- DAILY GOALS -->
+        <div class="card dmh-card">
+          <div class="dmh-header">
+            <div><div class="dmh-card-title">Daily Minimum Hit</div><div class="dmh-card-sub">Check off all goals → ★ on calendar</div></div>
+            <span class="dmh-badge none" id="dmhBadge">⏳ Add your goals</span>
+          </div>
+          <div class="dmh-list" id="dmhList"></div>
+          <div class="dmh-add-row">
+            <input class="dmh-add-inp" id="dmhInp" placeholder="Add a goal… e.g. 2h deep work" maxlength="80">
+            <button class="dmh-add-btn" onclick="addGoalItem()"><i class="fas fa-plus"></i></button>
+          </div>
         </div>
-        <div class="dmh-list" id="dmhList"></div>
-        <div class="dmh-add-row">
-          <input class="dmh-add-inp" id="dmhInp" placeholder="Add a goal&hellip; e.g. 2h deep work, read 20 pages" maxlength="80">
-          <button class="dmh-add-btn" onclick="addGoalItem()"><i class="fas fa-plus"></i></button>
-        </div>
-      </div>
 
-      <!-- STREAK -->
-      <div class="card streak-card" id="streakCard">
-        <div class="streak-top">
-          <div class="streak-flame" id="strkFlame">&#x1F525;</div>
-          <div class="streak-nums">
-            <div class="streak-current" id="strkCur">0</div>
-            <div class="streak-lbl" id="strkLbl">day streak</div>
-          </div>
-          <div class="streak-meta">
-            <div><div class="streak-stat-val" id="strkBest">0</div><div class="streak-stat-lbl">longest</div></div>
-            <div><div class="streak-stat-val" id="strkMon">0</div><div class="streak-stat-lbl">this month</div></div>
-          </div>
-        </div>
-        <div class="streak-strip" id="strkStrip"></div>
+        <!-- STREAK CARD -->
+        <div class="card streak-card" id="streakCard"></div>
       </div>
     </div>
   </div>
 </div>
+
 <div class="tst" id="toast"></div>
 <script type="module" src="js/dashboard.js"></script>
 </body>
