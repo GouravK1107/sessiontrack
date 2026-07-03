@@ -1062,7 +1062,14 @@ input, select, textarea {
 .two-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  align-items: stretch;
   gap: 1.2rem;
+}
+
+.two-columns > .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 /* ============================================
@@ -1136,10 +1143,17 @@ input, select, textarea {
   padding: 0 1.3rem 0.2rem;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0.4rem;
+  flex: 1 1 auto;
+  min-height: 180px;
   max-height: 260px;
   overflow-y: auto;
   scrollbar-width: thin;
+}
+
+.dmh-list:has(.dmh-item) {
+  justify-content: flex-start;
 }
 
 .dmh-item {
@@ -1322,9 +1336,11 @@ input, select, textarea {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
   gap: 0.7rem;
   position: relative;
+  flex: 1 1 auto;
 }
 
 .streak-ring {
