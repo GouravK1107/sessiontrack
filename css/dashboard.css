@@ -1296,26 +1296,44 @@ input, select, textarea {
 }
 
 /* ============================================
-   STREAK CARD
+   STREAK CARD (hero layout)
    ============================================ */
 .streak-card {
-  padding: 1.2rem 1.3rem;
+  padding: 1.6rem 1.5rem 1.3rem;
   overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(120% 90% at 50% -10%, rgba(0, 120, 255, 0.16), transparent 60%),
+    var(--glass-bg);
+}
+
+.streak-card::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.18), transparent 70%);
+  pointer-events: none;
 }
 
 .modern-streak {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
+  text-align: center;
+  gap: 0.7rem;
+  position: relative;
 }
 
 .streak-ring {
   position: relative;
-  width: 90px;
-  height: 90px;
+  width: 128px;
+  height: 128px;
   flex-shrink: 0;
+  margin-bottom: 0.2rem;
+  filter: drop-shadow(0 6px 16px var(--pglow));
 }
 
 .streak-ring-svg {
@@ -1326,13 +1344,13 @@ input, select, textarea {
 
 .streak-ring-bg {
   stroke: var(--s2);
-  stroke-width: 8;
+  stroke-width: 7;
   fill: none;
 }
 
 .streak-ring-progress {
   stroke: url(#streakGradient);
-  stroke-width: 8;
+  stroke-width: 7;
   fill: none;
   stroke-linecap: round;
   transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1348,55 +1366,68 @@ input, select, textarea {
 }
 
 .streak-ring-value {
-  font-size: 1.8rem;
+  font-size: 2.4rem;
   font-weight: 800;
   color: var(--th);
   font-family: var(--m);
   line-height: 1;
+  background: linear-gradient(135deg, var(--th), var(--plt));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .streak-ring-label {
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   color: var(--tm);
   font-family: var(--m);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
+  margin-top: 0.1rem;
 }
 
 .streak-info {
-  flex: 1;
-  min-width: 150px;
+  max-width: 260px;
 }
 
 .streak-message {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--th);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
 }
 
 .streak-sub {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--tm);
   font-family: var(--m);
 }
 
 .streak-stats-grid {
   display: flex;
-  gap: 0.8rem;
+  gap: 0.7rem;
   flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.3rem;
 }
 
 .streak-stat-item {
   text-align: center;
-  padding: 0.5rem 1rem;
+  padding: 0.55rem 1.3rem;
   background: var(--s2);
+  border: 1px solid var(--glass-border);
   border-radius: 1rem;
-  min-width: 80px;
+  min-width: 90px;
+  transition: var(--tr);
+}
+
+.streak-stat-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--pglow);
 }
 
 .streak-stat-value {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--p);
   font-family: var(--m);
@@ -1407,51 +1438,59 @@ input, select, textarea {
   color: var(--tm);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  margin-top: 0.1rem;
 }
 
 .streak-fire {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  background: linear-gradient(135deg, rgba(0, 120, 255, 0.15), rgba(0, 214, 143, 0.1));
-  padding: 0.4rem 1rem;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, rgba(0, 120, 255, 0.15), rgba(255, 107, 53, 0.12));
+  padding: 0.45rem 1.2rem;
   border-radius: 2rem;
-  border: 1px solid rgba(0, 120, 255, 0.25);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  margin-top: 0.4rem;
 }
 
 .streak-fire-icon {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
 }
 
 .streak-fire-text {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--p);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--th);
+  letter-spacing: 0.01em;
 }
 
 .streak-strip {
   display: flex;
-  gap: 3px;
-  margin-top: 1rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid var(--glass-border);
+  gap: 4px;
+  margin-top: 1.3rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--glass-border);
   flex-wrap: nowrap;
   overflow-x: auto;
+  justify-content: center;
 }
 
 .ss-cell {
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
   background: var(--brd);
-  border-radius: 3px;
+  border-radius: 4px;
   transition: var(--tr);
   flex-shrink: 0;
+}
+
+.ss-cell:hover {
+  transform: scale(1.25);
 }
 
 .ss-cell.s1 { background: rgba(0, 214, 143, 0.3); }
 .ss-cell.s2 { background: rgba(0, 214, 143, 0.6); }
 .ss-cell.s3 { background: rgba(0, 214, 143, 0.85); }
-.ss-cell.s4 { background: var(--grn); }
+.ss-cell.s4 { background: var(--grn); box-shadow: 0 0 8px rgba(0, 214, 143, 0.5); }
 .ss-cell.today-c { outline: 2px solid var(--p); outline-offset: 1px; }
 
 /* ============================================
@@ -1915,11 +1954,11 @@ input, select, textarea {
     justify-content: center;
   }
   .streak-ring {
-    width: 70px;
-    height: 70px;
+    width: 96px;
+    height: 96px;
   }
   .streak-ring-value {
-    font-size: 1.4rem;
+    font-size: 1.8rem;
   }
   .dmh-header {
     flex-direction: column;
@@ -2315,4 +2354,3 @@ input, select, textarea {
     --second-hand: 40px;
   }
 }
-
